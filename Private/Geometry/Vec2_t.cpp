@@ -51,3 +51,10 @@ double Vec2_t::getX() const{
 double Vec2_t::getY() const{
     return y;
 }
+
+void Vec2_t::setX(const double _x) {
+    x = _x;
+}
+void Vec2_t::setY(const double _y) {
+    y = _y;
+}

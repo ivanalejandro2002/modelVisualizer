@@ -76,7 +76,7 @@ int main(int argv, char ** args) {
 
     for (float x=-1; x<=1; x+=0.25){
         for (float y=-1; y<=1; y+=0.25){
-            for (float z=-1; z<=1; z+=0.25){
+            for (float z=11; z<=13; z+=0.25){
                 modelo.createPoint({x,y,z});
             }
         }
@@ -92,7 +92,9 @@ int main(int argv, char ** args) {
         int previousFrameTime = SDL_GetTicks();
         controller->process_input();
 
+        modelo.currentObject->translate(0,0,12);
         modelo.currentObject->rotate(0.01,0.01,0.01);
+        modelo.currentObject->translate(0,0,-12);
         Mat4_t aux = modelo.currentObject->getMatrix();
 
 

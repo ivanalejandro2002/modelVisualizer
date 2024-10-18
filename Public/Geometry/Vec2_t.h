@@ -21,5 +21,8 @@ class Vec2_t{
         [[nodiscard]] double getX() const;
         [[nodiscard]] double getY() const;
 
+        void setX(double);
+        void setY(double);
+
         void normalize();
 };

@@ -71,32 +71,27 @@ int main(int argv, char ** args) {
     modelo.getTreeHierarchy(fout);*/
 
     Model modelo(1,"Cubito","Práctica 1 de Imagenes");
-    modelo.createGroup("Grupo","Puntos","Un solo objeto, el cubo");
-    modelo.createObject("Cubo","Puntos en el plano","Objeto de la práctica");
-
-    for (float x=-1; x<=1; x+=0.25){
-        for (float y=-1; y<=1; y+=0.25){
-            for (float z=-1; z<=1; z+=0.25){
-                modelo.createPoint({x,y,z});
-            }
-        }
-    }
+    modelo.loadObj("D:/Users/Ale/Documents/Documentos Alex/Alex/ESCOM/septimo semestre/imagenes/tetera.obj");
     modelo.getTreeHierarchy(fout);
+
 
 
     drawer->changeBrushColor({255,255,255,255});
     int fov = 400;
 
     while(controller->getRunning()) {
-        fout<<"a\n";
         int previousFrameTime = SDL_GetTicks();
         controller->process_input();
 
+        //modelo.currentObject->translate(0,0,12);
         modelo.currentObject->rotate(0.01,0.01,0.01);
+        modelo.currentObject->translate(0,0,0);
         Mat4_t aux = modelo.currentObject->getMatrix();
 
 
         modelo.renderPoints(controller->getTypeOfView(),drawer,controller->getFov());
+        modelo.renderFaces(controller->getTypeOfView(),drawer,controller->getFov());
+
         if(const int timeToWait = FRAME_TARGET_TIME - (SDL_GetTicks()-previousFrameTime); timeToWait >0 && timeToWait <= FRAME_TARGET_TIME){
             SDL_Delay(timeToWait);
         }

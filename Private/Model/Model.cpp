@@ -335,6 +335,11 @@ bool Model::selectFaceById(const int id) {
     return true;
 }
 
+Point * Model::getPointById(const int id) {
+    if(!pointsById.contains(id))return nullptr;
+    return pointsById[id];
+}
+
 
 
 
@@ -352,7 +357,7 @@ void Model::getTreeHierarchy(ofstream &fileOut) const {
     }
 }
 
-void Model::renderPoints(int style, const Drawer *drawer,int fov) const {
+void Model::renderPoints(const int style, const Drawer *drawer, const int fov) const {
     for(const auto point: points){
         Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
         Vec2_t location = project(p,style);
@@ -362,17 +367,134 @@ void Model::renderPoints(int style, const Drawer *drawer,int fov) const {
     }
 }
 
+void Model::renderFaces(const int style, const Drawer *drawer, const int fov) const {
+    for(const auto face: faces){
+        vector<Point *> points = face->getVertices();
+        vector<Vec2_t> locations;
+        for(Point *point:points) {
+            Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+            Vec2_t location = project(p,style);
+            location = location*fov;
+            location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+
+            locations.push_back(location);
+        }
+
+        for(int i = 0 ;i < locations.size(); i++) {
+            drawer->createLineBresenham(locations[i],locations[(i+1)%locations.size()]);
+        }
+    }
+}
+
 Vec2_t Model::project(Vec3_t &p, const int type) {
     //0 Isometric
     //1 Plano
     double prevX = p.getX();
     double prevY = p.getY();
-    const double prevZ = p.getZ();
+    double prevZ = p.getZ();
     if(type == 0){
         return {prevX,prevY};
     }else{
-        double newX = prevX / prevZ;
-        double newY = prevY / prevZ;
-        return {newX,newY};
+        Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
+        return {nuevo.getX(),nuevo.getY()};
+    }
+}
+
+void Model::loadObj(const string &inputFile) {
+    ifstream file;
+    ofstream fout;
+    fout.open("Log.txt");
+    file.open(inputFile.c_str());
+    if(!file.is_open()) {
+        return;
+    }
+    map<int,int> realPoints;
+    map<int,int> realFaces;
+    string lecture;
+    bool usedGroup = false;
+    bool usedObject = false;
+    int groupID;
+    int objectID;
+    int numberOfPoints = 0;
+    if(!this->freedGroups.empty()) {
+        groupID = this->freedGroups.top();
+    }else {
+        groupID = this->sizeOfGroupBuffer;
+    }
+
+    if(!this->freedObjects.empty()) {
+        groupID = this->freedObjects.top();
+    }else {
+        groupID = this->sizeOfObjectBuffer;
+    }
+
+    string numberG = to_string(groupID);
+    string numberO = to_string(objectID);
+    this->createGroup("Loaded group ID = "+numberG,"Import","Imported Group from an OBJ file");
+    this->createObject("Loaded object ID = "+numberO,"Import","Imported Object from an OBJ file");
+    while(file>>lecture) {
+        int idx = 1;
+        if(lecture.empty()) continue;
+        if(lecture[0] == 'g') {
+            getline(file,lecture);
+            idx = 0;
+            while(lecture[idx] == ' ')idx++;
+            string newName;
+
+            while(idx < lecture.size() && lecture[idx]!=' ') {
+                newName += lecture[idx];
+                idx++;
+            }
+
+            if(!usedGroup) {
+                usedGroup = true;
+                this->currentGroup->setName(newName);
+            }else {
+                this->createGroup(newName,"Import","Imported Group from an OBJ file");
+
+                if(!this->freedObjects.empty()) {
+                    groupID = this->freedObjects.top();
+                }else {
+                    groupID = this->sizeOfObjectBuffer;
+                }
+
+                this->createObject("Loaded object ID = "+numberO,"Import","Imported Object from an OBJ file");
+                usedObject = false;
+            }
+        }else if(lecture[0] == 'o') {
+            getline(file,lecture);
+            idx = 0;
+            while(lecture[idx] == ' ')idx++;
+            string newName;
+
+            while(idx < lecture.size() && lecture[idx]!=' ') {
+                newName += lecture[idx];
+                idx++;
+            }
+
+            if(!usedObject) {
+                usedObject = true;
+                this->currentObject->setName(newName);
+            }else {
+                this->createObject(newName,"Import","Imported Group from an OBJ file");
+            }
+        }else if(lecture == "v") {
+            double x,y,z;
+            file>>x>>y>>z;
+
+            int PointID = this -> createPoint(Vec3_t(x,y,z));
+            numberOfPoints++;
+            realPoints[numberOfPoints] = PointID;
+        }else if(lecture=="f") {
+            int v1,v2,v3;
+            int vt1,vt2,vt3;
+            int vn1,vn2,vn3;
+            file>>v1>>v2>>v3;
+            fout<<"--"<<v1<<","<<v2<<","<<v3<<"::";
+            fout<<realPoints[v1]<<","<<realPoints[v2]<<","<<realPoints[v3]<<"\n";
+            this->meshToFace({realPoints[v1],realPoints[v2],realPoints[v3]});
+        }else {
+            getline(file,lecture);
+        }
     }
 }

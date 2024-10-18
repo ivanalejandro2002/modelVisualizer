@@ -4,7 +4,7 @@
 
 Controller::Controller() {
     running = true;
-    fov = 400;
+    fov = 10;
 }
 
 Controller::~Controller() = default;

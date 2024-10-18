@@ -106,10 +106,15 @@ class Model{
         void selectPointById(int id);
         void selectPointByPoint(Point *);
 
+        Point * getPointById(int id);
+
         void getTreeHierarchy(ofstream &) const;
 
         void renderPoints(int, const Drawer *,int) const;
+        void renderFaces(int, const Drawer *,int) const;
 
         [[nodiscard]] static Vec2_t project(Vec3_t &,int type) ;
+
+        void loadObj(const string &);
 
 };

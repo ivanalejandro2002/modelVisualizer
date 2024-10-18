@@ -21,6 +21,7 @@ class Mat4_t{
         Vec4_t operator*(const Vec4_t&) const;
 
         static Mat4_t identity();
+        static Mat4_t isometric();
         [[nodiscard]] Mat4_t transpose() const;
 
         static Mat4_t make_scale(double, double, double);

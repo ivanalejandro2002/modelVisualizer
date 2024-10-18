@@ -68,6 +68,18 @@ Mat4_t Mat4_t::identity() {
     return answer;
 }
 
+Mat4_t Mat4_t::isometric() {
+    Mat4_t answer;
+    answer.mat[0][0] = answer.mat[0][2] = sqrt(2)/2;
+    answer.mat[1][0] = sqrt(6)/6;
+    answer.mat[1][1] = answer.mat[1][0]*2;
+    answer.mat[1][2] = -answer.mat[1][0];
+    answer.mat[2][1] = answer.mat[2][2] = sqrt(3)/3;
+    answer.mat[2][0] = -answer.mat[2][1];
+    answer.mat[3][3] = 1;
+    return answer;
+}
+
 Mat4_t Mat4_t::transpose() const {
     Mat4_t answer;
     for(int i = 0; i < 4; i++) {

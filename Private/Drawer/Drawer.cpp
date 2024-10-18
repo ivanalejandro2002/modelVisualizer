@@ -1,5 +1,5 @@
 #include "..\..\Public\Drawer\Drawer.h"
-
+#include "pointGeom.cpp"
 Drawer::Drawer(int _width, int _height, const string& title) {
     width = _width;
     height = _height;
@@ -84,6 +84,104 @@ vector<pair<int,int> > Drawer::bresenham(int x1, int y1, int x2, int y2){
 
 void Drawer::createLineBresenham(Vec2_t p1, Vec2_t p2) const{
     vector<pair<int,int> > puntosLinea;
+    if(p1.getX()<0 && p2.getX()<0)return;
+    if(p1.getY()<0 && p2.getY()<0)return;
+    if(p1.getX()>width && p2.getY()>width)return;
+    if(p1.getY()>height && p2.getY()>height)return;
+    bool exists = false;
+    if(p1.getX()>=0 && p1.getX()<=width && p1.getY()>=0 && p1.getY()<=height)exists = true;
+    if(p2.getX()>=0 && p2.getX()<=width && p2.getY()>=0 && p2.getY()<=height)exists = true;
+
+    int w = intersectSegmentsInfo({p1.getX(),p1.getY()},{p2.getX(),p2.getY()},{0,0},{0,static_cast<ld>(height)});
+    if(w==1){
+        exists = true;
+        const pointGeom v = intersectLines({p1.getX(),p1.getY()},{p2.getX()-p1.getX(),p2.getY()-p1.getY()},{0,0},{0,1});
+
+        if(p1.getX() < p2.getX()) {
+            p1.setX(v.x);
+            p1.setY(v.y);
+        }else {
+            p2.setX(v.x);
+            p2.setY(v.y);
+        }
+    }else if(w==-1) {
+        exists = true;
+        double miny = min(p1.getY(),p2.getY());
+        miny = max(miny,static_cast<double>(0));
+        double maxy = max(p1.getY(),p2.getY());
+        maxy = min(static_cast<double>(height),maxy);
+        p1.setY(miny);
+        p2.setY(maxy);
+    }
+
+    w = intersectSegmentsInfo({p1.getX(),p1.getY()},{p2.getX(),p2.getY()},{static_cast<ld>(width),0},{static_cast<ld>(width),static_cast<ld>(height)});
+    if(w==1){
+        exists = true;
+        const pointGeom v = intersectLines({p1.getX(),p1.getY()},{p2.getX()-p1.getX(),p2.getY()-p1.getY()},{static_cast<ld>(width),0},{0,1});
+
+        if(p1.getX() > p2.getX()) {
+            p1.setX(v.x);
+            p1.setY(v.y);
+        }else {
+            p2.setX(v.x);
+            p2.setY(v.y);
+        }
+    }else if(w==-1) {
+        exists = true;
+        double miny = min(p1.getY(),p2.getY());
+        miny = max(miny,static_cast<double>(0));
+        double maxy = max(p1.getY(),p2.getY());
+        maxy = min(static_cast<double>(height),maxy);
+        p1.setY(miny);
+        p2.setY(maxy);
+    }
+
+    w = intersectSegmentsInfo({p1.getX(),p1.getY()},{p2.getX(),p2.getY()},{0,0},{static_cast<ld>(width),0});
+    if(w==1){
+        exists = true;
+        const pointGeom v = intersectLines({p1.getX(),p1.getY()},{p2.getX()-p1.getX(),p2.getY()-p1.getY()},{0,0},{1,0});
+
+        if(p1.getY() < p2.getY()) {
+            p1.setX(v.x);
+            p1.setY(v.y);
+        }else {
+            p2.setX(v.x);
+            p2.setY(v.y);
+        }
+    }else if(w==-1) {
+        exists = true;
+        double minx = min(p1.getX(),p2.getX());
+        minx = max(minx,static_cast<double>(0));
+        double maxx = max(p1.getX(),p2.getX());
+        maxx = min(static_cast<double>(width),maxx);
+        p1.setY(minx);
+        p2.setY(maxx);
+    }
+
+    w = intersectSegmentsInfo({p1.getX(),p1.getY()},{p2.getX(),p2.getY()},{0,static_cast<ld>(height)},{static_cast<ld>(width),static_cast<ld>(height)});
+    if(w==1){
+        exists = true;
+        const pointGeom v = intersectLines({p1.getX(),p1.getY()},{p2.getX()-p1.getX(),p2.getY()-p1.getY()},{0,static_cast<ld>(height)},{1,0});
+
+        if(p1.getY() > p2.getY()) {
+            p1.setX(v.x);
+            p1.setY(v.y);
+        }else {
+            p2.setX(v.x);
+            p2.setY(v.y);
+        }
+    }else if(w==-1) {
+        exists = true;
+        double minx = min(p1.getX(),p2.getX());
+        minx = max(minx,static_cast<double>(0));
+        double maxx = max(p1.getX(),p2.getX());
+        maxx = min(static_cast<double>(width),maxx);
+        p1.setY(minx);
+        p2.setY(maxx);
+    }
+
+    if(!exists)return;
+
     puntosLinea = bresenham(static_cast<int>(round(p1.getX())),
                             static_cast<int>(round(p1.getY())),
                             static_cast<int>(round(p2.getX())),
