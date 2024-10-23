@@ -191,6 +191,10 @@ void Drawer::createLineBresenham(Vec2_t p1, Vec2_t p2) const{
     }
 }
 
+void Drawer::createCheatLine(Vec2_t p1, Vec2_t p2) const {
+    SDL_RenderDrawLine(renderer,p1.getX(),p1.getY(),p2.getX(),p2.getY());
+}
+
 void Drawer::drawPolygon(const vector<Vec2_t > &polygon) const{
     for(int i=0;i<polygon.size();i++){
         createLineBresenham(polygon[i],polygon[(i+1)%polygon.size()]);

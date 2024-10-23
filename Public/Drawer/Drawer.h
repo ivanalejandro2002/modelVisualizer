@@ -28,6 +28,7 @@ public:
     static vector<pair<int,int> > bresenham(int,int,int,int);
 
     void createLineBresenham(Vec2_t , Vec2_t ) const;
+    void createCheatLine(Vec2_t,Vec2_t) const;
     void drawPolygon(const vector<Vec2_t> &) const;
     void drawConnectedPolygon(const vector<Vec2_t > &) const;
 

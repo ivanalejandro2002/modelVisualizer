@@ -88,11 +88,11 @@ int main(int argv, char ** args) {
     int fov = 400;
 
     while(controller->getRunning()) {
-        fout<<"a\n";
         int previousFrameTime = SDL_GetTicks();
         controller->process_input();
 
         modelo.currentObject->rotate(0.01,0.01,0.01);
+        //modelo.currentObject->translate(0,0,-12);
         Mat4_t aux = modelo.currentObject->getMatrix();
 
 

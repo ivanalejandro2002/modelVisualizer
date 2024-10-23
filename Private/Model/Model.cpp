@@ -272,11 +272,13 @@ void Model::selectGroupByName(const std::string &name) {
     currentPoint = nullptr;
 }
 
-void Model::selectGroupById(const int id) {
+bool Model::selectGroupById(const int id) {
+    if(!groupsById.contains(id))return false;
     currentGroup = groupsById[id];
     currentObject = nullptr;
     currentFace = nullptr;
     currentPoint = nullptr;
+    return true;
 }
 
 void Model::selectGroupByGroup(Group *group) {
@@ -294,11 +296,13 @@ void Model::selectObjectByName(const std::string &name) {
     currentPoint = nullptr;
 }
 
-void Model::selectObjectById(const int id) {
-    currentObject = objectsById[id];
+bool Model::selectObjectById(const int _id) {
+    if(!objectsById.contains(_id))return false;
+    currentObject = objectsById[_id];
     currentGroup = currentObject->getGroup();
     currentFace = nullptr;
     currentPoint = nullptr;
+    return true;
 }
 
 void Model::selectObjectByObject(Object *obj) {
@@ -308,8 +312,8 @@ void Model::selectObjectByObject(Object *obj) {
     currentPoint = nullptr;
 }
 
-void Model::selectPointById(const int id) {
-    currentPoint = pointsById[id];
+void Model::selectPointById(const int _id) {
+    currentPoint = pointsById[_id];
     currentObject = currentPoint->getObject();
     currentGroup = currentObject->getGroup();
     currentFace = nullptr;
@@ -327,17 +331,17 @@ void Model::selectFaceByFace(Face* f) {
     currentGroup = currentObject->getGroup();
     currentPoint = nullptr;
 }
-bool Model::selectFaceById(const int id) {
-    if(!facesById.contains(id))return false;
-    currentFace = facesById[id];
+bool Model::selectFaceById(const int _id) {
+    if(!facesById.contains(_id))return false;
+    currentFace = facesById[_id];
     currentObject = currentFace->getObject();
     currentGroup = currentObject->getGroup();
     return true;
 }
 
-Point * Model::getPointById(const int id) {
-    if(!pointsById.contains(id))return nullptr;
-    return pointsById[id];
+Point * Model::getPointById(const int _id) {
+    if(!pointsById.contains(_id))return nullptr;
+    return pointsById[_id];
 }
 
 
@@ -381,7 +385,9 @@ void Model::renderFaces(const int style, const Drawer *drawer, const int fov) co
         }
 
         for(int i = 0 ;i < locations.size(); i++) {
-            drawer->createLineBresenham(locations[i],locations[(i+1)%locations.size()]);
+            //drawer->createLineBresenham(locations[i],locations[(i+1)%locations.size()]);
+            drawer->createCheatLine(locations[i],locations[(i+1)%locations.size()]);
+
         }
     }
 }

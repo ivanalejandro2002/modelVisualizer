@@ -93,11 +93,11 @@ class Model{
         int createFace(const vector<Vec3_t>&);
 
         void selectGroupByName(const std::string &name);
-        void selectGroupById(int id);
+        bool selectGroupById(int id);
         void selectGroupByGroup(Group *);
 
         void selectObjectByName(const std::string &name);
-        void selectObjectById(int id);
+        bool selectObjectById(int id);
         void selectObjectByObject(Object *);
 
         bool selectFaceById(int id);
