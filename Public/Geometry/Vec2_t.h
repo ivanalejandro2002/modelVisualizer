@@ -17,6 +17,7 @@ class Vec2_t{
         Vec2_t operator *(double) const;
         Vec2_t operator /(double) const;
         Vec2_t& operator =(const Vec2_t &);
+        bool operator <(const Vec2_t &) const;
 
         [[nodiscard]] double getX() const;
         [[nodiscard]] double getY() const;

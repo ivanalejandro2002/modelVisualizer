@@ -240,7 +240,93 @@ void Drawer::drawPoint(const int x, const int y) const {
     SDL_Rect rectangle;
     rectangle.x =x-1;
     rectangle.y = y-1;
-    rectangle.w = rectangle.h = 2;
+    rectangle.w = rectangle.h = 3;
 
     SDL_RenderFillRect(renderer,&rectangle);
+}
+
+void Drawer::drawHorizontalLine(int y, int x1, int x2){
+    if(x1>x2)swap(x1,x2);
+    for(int i=x1;i<=x2;i++){
+        SDL_RenderDrawPoint(renderer,i,y);
+    }
+}
+
+void Drawer::drawFilledTriangle(vector<Vec2_t> pts) {
+    sort(pts.begin(),pts.end());
+    if(pts[0].getY() == pts[2].getY()){
+        drawHorizontalLine(pts[0].getY(),pts[0].getX(),pts[2].getX());
+    }
+    double x,y;
+    y = pts[1].getY();
+    x = ((pts[2].getX()-pts[0].getX())*(pts[1].getY()-pts[0].getY()))/(pts[2].getY()-pts[0].getY())+pts[0].getX();
+
+    Vec2_t M(x,y);
+
+
+    if(pts[1].getY()!=pts[2].getY() && pts[2].getY()!=y){
+        drawFlatTop({pts[1],M,pts[2]});
+    }
+    if(pts[0].getY()!=pts[1].getY() && pts[0].getY()!=y){
+        drawFLatBottom({pts[0],pts[1],M});
+    }
+}
+
+void Drawer::drawFlatTop(const vector<Vec2_t> &pts) {
+    double deltaX,deltaY;
+    deltaX = pts[0].getX()-pts[2].getX();
+    deltaY = pts[2].getY()-pts[0].getY();
+    double m1 = deltaX/deltaY;
+
+    deltaX = pts[1].getX()-pts[2].getX();
+    deltaY = pts[2].getY()-pts[0].getY();
+
+    double m2 = deltaX/deltaY;
+    double xStart, xEnd;
+    double origin;
+    origin = xStart = xEnd = pts[2].getX();
+
+    int startY = (int)pts[2].getY();
+    int endY = (int)pts[0].getY();
+    for(int i=startY;i>=endY;i--){
+        drawHorizontalLine(i,(int)xStart,(int)xEnd);
+        xStart+=m1;
+        if(abs(pts[0].getX()-origin)<abs(xStart-origin)){
+            xStart = pts[0].getX();
+        }
+        xEnd+=m2;
+        if(abs(pts[1].getX()-origin)<abs(xEnd-origin)){
+            xEnd = pts[1].getX();
+        }
+    }
+}
+
+void Drawer::drawFLatBottom(const vector<Vec2_t> &pts) {
+    double deltaX,deltaY;
+    deltaX = pts[0].getX()-pts[2].getX();
+    deltaY = pts[0].getY()-pts[2].getY();
+    if(deltaY==0)return;
+    double m1 = deltaX/deltaY;
+
+    deltaX = pts[1].getX()-pts[0].getX();
+    deltaY = pts[2].getY()-pts[0].getY();
+    if(deltaY==0)return;
+
+    double m2 = deltaX/deltaY;
+    double xStart, xEnd,origin;
+    origin = xStart = xEnd = pts[0].getX();
+
+    int startY = (int)pts[0].getY();
+    int endY = (int)pts[2].getY();
+    for(int i=startY;i<=endY;i++){
+        drawHorizontalLine(i,(int)xStart,(int)xEnd);
+        xStart+=m1;
+        if(abs(pts[2].getX()-origin)<abs(xStart-origin)){
+            xStart = pts[2].getX();
+        }
+        xEnd+=m2;
+        if(abs(pts[1].getX()-origin)<abs(xEnd-origin)){
+            xEnd = pts[1].getX();
+        }
+    }
 }

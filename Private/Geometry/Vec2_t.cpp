@@ -23,6 +23,12 @@ Vec2_t Vec2_t::operator /(const double factor) const{
     return {x / factor, y / factor};
 }
 
+bool Vec2_t::operator <(const Vec2_t &other) const{
+    if(y<other.y)return true;
+    if(y>other.y)return false;
+    return x<other.x;
+}
+
 Vec2_t& Vec2_t::operator=(const Vec2_t& rhs) {
     x = rhs.x;
     y = rhs.y;

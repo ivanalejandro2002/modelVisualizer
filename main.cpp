@@ -71,39 +71,61 @@ int main(int argv, char ** args) {
     modelo.getTreeHierarchy(fout);*/
 
     Model modelo(1,"Cubito","Práctica 1 de Imagenes");
-    modelo.createGroup("Grupo","Puntos","Un solo objeto, el cubo");
-    modelo.createObject("Cubo","Puntos en el plano","Objeto de la práctica");
+    modelo.loadObj("../TestModels/osito.obj");
+    //modelo.getTreeHierarchy(fout);
 
-    for (float x=-1; x<=1; x+=0.25){
-        for (float y=-1; y<=1; y+=0.25){
-            for (float z=-1; z<=1; z+=0.25){
-                modelo.createPoint({x,y,z});
-            }
-        }
-    }
-    modelo.getTreeHierarchy(fout);
 
 
     drawer->changeBrushColor({255,255,255,255});
     int fov = 400;
+    char lectura;
+    bool drawVertex = true;
+    bool drawEdges = false;
+    bool drawFaces = false;
+    fout<<modelo.sizeOfFacesBuffer<<"\n";
+    vector<int> colorForFaces(modelo.sizeOfFacesBuffer+1);
+    for(int i=0;i<colorForFaces.size();i++){
+        int rojo = rand()%200+30;
+        int verde = rand()%200+30;
+        int azul = rand()%200+30;
+        colorForFaces[i] = (rojo*1000000+verde*1000+azul);
+    }
 
     while(controller->getRunning()) {
         int previousFrameTime = SDL_GetTicks();
-        controller->process_input();
+        lectura = controller->process_input();
+        if(lectura=='v')drawVertex=!drawVertex;
+        if(lectura=='l')drawEdges=!drawEdges;
+        if(lectura=='f')drawFaces=!drawFaces;
 
+        //modelo.currentObject->translate(0,0,12);
         modelo.currentObject->rotate(0.01,0.01,0.01);
-        //modelo.currentObject->translate(0,0,-12);
+        modelo.currentObject->translate(0,0,0);
         Mat4_t aux = modelo.currentObject->getMatrix();
 
+        drawer->changeBrushColor({248,122,83,255});
+        if(drawVertex)
+            modelo.renderPoints(controller->getTypeOfView(),drawer,controller->getFov());
 
-        modelo.renderPoints(controller->getTypeOfView(),drawer,controller->getFov());
+        drawer->changeBrushColor({230,199,103,255});
+
+        if(drawFaces)
+            modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
+
+        drawer->changeBrushColor({76,75,22,255});
+        if(drawEdges)
+            modelo.renderFaces(controller->getTypeOfView(),drawer,controller->getFov());
+
         if(const int timeToWait = FRAME_TARGET_TIME - (SDL_GetTicks()-previousFrameTime); timeToWait >0 && timeToWait <= FRAME_TARGET_TIME){
             SDL_Delay(timeToWait);
         }
 
+        //drawer->drawFilledTriangle({{10,500},{0,550},{200,500}});
+
         drawer->updateScreen();
         drawer->fillColor({0,0,0,255});
     }
+
     fout.close();
 
 
