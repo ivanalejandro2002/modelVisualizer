@@ -1,5 +1,5 @@
 #include "../../Public/Model/Model.h"
-
+#include <algorithm>
 #include <thread>
 
 Model::Model(const int id, const std::string &name, const std::string &description){
@@ -375,7 +375,7 @@ void Model::renderFaces(const int style, const Drawer *drawer, const int fov) co
     for(const auto face: faces){
         vector<Point *> points = face->getVertices();
         vector<Vec2_t> locations;
-        for(Point *point:points) {
+        for(const auto point:points) {
             Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
             Vec2_t location = project(p,style);
             location = location*fov;
@@ -392,6 +392,61 @@ void Model::renderFaces(const int style, const Drawer *drawer, const int fov) co
     }
 }
 
+void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov) const {
+    for(const auto face: faces){
+        vector<Point *> points = face->getVertices();
+        vector<Vec2_t> locations;
+        for(Point *point:points) {
+            Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+            Vec2_t location = project(p,style);
+            location = location*fov;
+            location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+
+            locations.push_back(location);
+        }
+
+        drawer->drawFilledTriangle(locations);
+    }
+}
+
+void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, vector<int> &colors) const {
+    vector< pair<double,pair< vector<Vec2_t> , int > > > rangedFaces;
+    double distance;
+    int index = 0;
+    for(const auto face: faces){
+        vector<Point *> points = face->getVertices();
+        vector<Vec2_t> locations;
+        double realX,realY,realZ;
+        realX = realY = realZ = 0;
+        for(const auto *point:points) {
+
+            Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+            Vec3_t locationX = projectTo3D(p,style);
+            Vec2_t location = {locationX.getX(),locationX.getY()};
+            realZ += locationX.getZ();
+            location = location*fov;
+            location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+
+            locations.push_back(location);
+        }
+
+        distance = realZ/(double)points.size();
+        rangedFaces.push_back({distance,{locations,index}});
+        ++index;
+    }
+
+    sort(rangedFaces.begin(),rangedFaces.end());
+    Uint8 red,green,blue;
+    for(int i = (int)rangedFaces.size()-1;i >= 0; --i){
+        red = colors[rangedFaces[i].second.second]/1000000;
+        green = (colors[rangedFaces[i].second.second]/1000)%1000;
+        blue = rangedFaces[i].second.second%1000;
+        drawer->changeBrushColor({red,green,blue,255});
+        drawer->drawFilledTriangle(rangedFaces[i].second.first);
+    }
+
+}
+
 Vec2_t Model::project(Vec3_t &p, const int type) {
     //0 Isometric
     //1 Plano
@@ -403,6 +458,20 @@ Vec2_t Model::project(Vec3_t &p, const int type) {
     }else{
         Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
         return {nuevo.getX(),nuevo.getY()};
+    }
+}
+
+Vec3_t Model::projectTo3D(Vec3_t &p, const int type) {
+    //0 Isometric
+    //1 Plano
+    double prevX = p.getX();
+    double prevY = p.getY();
+    double prevZ = p.getZ();
+    if(type == 0){
+        return {prevX,prevY,prevZ};
+    }else{
+        Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
+        return nuevo;
     }
 }
 

@@ -36,4 +36,9 @@ public:
     [[nodiscard]] int getWidth() const;
 
     void drawPoint(int x, int y) const;
+
+    void drawHorizontalLine(int,int,int);
+    void drawFilledTriangle(vector<Vec2_t> );
+    void drawFlatTop(const vector<Vec2_t>& );
+    void drawFLatBottom(const vector<Vec2_t> &);
 };

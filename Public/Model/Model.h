@@ -111,9 +111,12 @@ class Model{
         void getTreeHierarchy(ofstream &) const;
 
         void renderPoints(int, const Drawer *,int) const;
+        void renderFilledFaces(int, Drawer *, int) const;
+        void renderFilledFaces(int, Drawer *, int,vector<int> &) const;
         void renderFaces(int, const Drawer *,int) const;
 
         [[nodiscard]] static Vec2_t project(Vec3_t &,int type) ;
+        [[nodiscard]] static Vec3_t projectTo3D(Vec3_t &,int type) ;
 
         void loadObj(const string &);
 

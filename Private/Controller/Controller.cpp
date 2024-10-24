@@ -17,13 +17,14 @@ void Controller::setRunning(const bool running){
 }
 
 
-void Controller::process_input() {
+char Controller::process_input() {
     SDL_Event event;
     SDL_PollEvent(&event);
-
+    char returnValue = 0;
     switch (event.type) {
         case SDL_QUIT:
             running = false;
+            returnValue = -1;
         break;
         case SDL_KEYDOWN:
             if(event.key.keysym.sym == SDLK_ESCAPE)
@@ -36,13 +37,25 @@ void Controller::process_input() {
             fov+=10;
         if(event.key.keysym.sym == SDLK_RIGHT)
             fov-=10;
-        if(event.key.keysym.sym == SDLK_i)
+        if(event.key.keysym.sym == SDLK_i) {
             typeOfView = 1;
-        if(event.key.keysym.sym == SDLK_o)
+            returnValue = 'i';
+        }
+        if(event.key.keysym.sym == SDLK_o) {
             typeOfView = 0;
+            returnValue = 'o';
+        }
+        if(event.key.keysym.sym == SDLK_l)
+            returnValue = 'l';
+        if(event.key.keysym.sym == SDLK_f)
+            returnValue = 'f';
+        if(event.key.keysym.sym == SDLK_v)
+            returnValue = 'v';
+
         break;
         default: ;
     }
+    return returnValue;
 }
 
 int Controller::getFov() const {
