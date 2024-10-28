@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <stack>
+#include <tuple>
 #include "Object.h"
 #include "../Geometry/Vec3_t.h"
 #include "Face.h"
@@ -113,11 +114,14 @@ class Model{
         void renderPoints(int, const Drawer *,int) const;
         void renderFilledFaces(int, Drawer *, int) const;
         void renderFilledFaces(int, Drawer *, int,vector<int> &) const;
+        void renderAllFilledFaces(int, Drawer *, int,vector<int> &) const;
         void renderFaces(int, const Drawer *,int) const;
 
         [[nodiscard]] static Vec2_t project(Vec3_t &,int type) ;
         [[nodiscard]] static Vec3_t projectTo3D(Vec3_t &,int type) ;
 
         void loadObj(const string &);
+
+        static tuple<int,int,int> readFacePoint(const string &,int &);
 
 };
