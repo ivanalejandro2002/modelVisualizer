@@ -431,7 +431,7 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, ve
         }
 
         distance = realZ/(double)points.size();
-        rangedFaces.push_back({distance,{locations,index}});
+        rangedFaces.push_back({distance,{locations,face->getId()}});
         ++index;
     }
 
@@ -447,6 +447,47 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, ve
 
 }
 
+void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov, vector<int> &colors) const {
+    vector< pair<double,pair< vector<Vec2_t> , int > > > rangedFaces;
+    double distance;
+    int index = 0;
+    for(const auto *group: groups) {
+        for(const auto *object:group->objects) {
+            for(const auto face: object->faces) {
+                vector<Point *> points = face->getVertices();
+                vector<Vec2_t> locations;
+                double realX,realY,realZ;
+                realX = realY = realZ = 0;
+                for(const auto *point:points) {
+
+                    Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+                    Vec3_t locationX = projectTo3D(p,style);
+                    Vec2_t location = {locationX.getX(),locationX.getY()};
+                    realZ += locationX.getZ();
+                    location = location*fov;
+                    location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+
+                    locations.push_back(location);
+                }
+
+                distance = realZ/(double)points.size();
+                rangedFaces.push_back({distance,{locations,face->getId()}});
+                ++index;
+            }
+        }
+    }
+
+    sort(rangedFaces.begin(),rangedFaces.end());
+    Uint8 red,green,blue;
+    for(int i = (int)rangedFaces.size()-1;i >= 0; --i){
+        red = colors[rangedFaces[i].second.second]/1000000;
+        green = (colors[rangedFaces[i].second.second]/1000)%1000;
+        blue = rangedFaces[i].second.second%1000;
+        drawer->changeBrushColor({red,green,blue,255});
+        drawer->drawFilledTriangle(rangedFaces[i].second.first);
+    }
+}
+
 Vec2_t Model::project(Vec3_t &p, const int type) {
     //0 Isometric
     //1 Plano
@@ -454,10 +495,10 @@ Vec2_t Model::project(Vec3_t &p, const int type) {
     double prevY = p.getY();
     double prevZ = p.getZ();
     if(type == 0){
-        return {prevX,prevY};
+        return {prevX,-prevY};
     }else{
         Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
-        return {nuevo.getX(),nuevo.getY()};
+        return {nuevo.getX(),-nuevo.getY()};
     }
 }
 
@@ -468,11 +509,42 @@ Vec3_t Model::projectTo3D(Vec3_t &p, const int type) {
     double prevY = p.getY();
     double prevZ = p.getZ();
     if(type == 0){
-        return {prevX,prevY,prevZ};
+        return {prevX,-prevY,prevZ};
     }else{
         Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
-        return nuevo;
+        return {nuevo.getX(),-nuevo.getY(),prevZ};
     }
+}
+
+void getNumAutomaton(const string &input,int &index, int &value) {
+    while(index<input.size() && input[index]>='0' && input[index]<='9') {
+        value *= 10;
+        value += input[index] - '0';
+        ++index;
+    }
+}
+
+tuple <int,int,int> Model::readFacePoint(const string &input,int &index) {
+    int v,t,n;
+    while(index<input.length() && input[index] == ' ')index++;
+    v = n = t = -1;
+    if(index<input.length() && input[index] != '/') {
+        v = 0;
+        getNumAutomaton(input,index,v);
+    }
+    if(index<input.length() && input[index]=='/')index++;
+    if(index<input.length() && input[index] != ' ' && input[index] != '/') {
+        t = 0;
+        getNumAutomaton(input,index,t);
+    }
+    if(index<input.length() && input[index]=='/')index++;
+
+    if(index<input.length() && input[index]!=' ' && input[index] != '/') {
+        n = 0;
+        getNumAutomaton(input,index,n);
+    }
+
+    return {v,t,n};
 }
 
 void Model::loadObj(const string &inputFile) {
@@ -528,9 +600,9 @@ void Model::loadObj(const string &inputFile) {
                 this->createGroup(newName,"Import","Imported Group from an OBJ file");
 
                 if(!this->freedObjects.empty()) {
-                    groupID = this->freedObjects.top();
+                    numberO = this->freedObjects.top();
                 }else {
-                    groupID = this->sizeOfObjectBuffer;
+                    numberO = this->sizeOfObjectBuffer;
                 }
 
                 this->createObject("Loaded object ID = "+numberO,"Import","Imported Object from an OBJ file");
@@ -560,14 +632,38 @@ void Model::loadObj(const string &inputFile) {
             int PointID = this -> createPoint(Vec3_t(x,y,z));
             numberOfPoints++;
             realPoints[numberOfPoints] = PointID;
+            //fout<<"---"<<PointID<<"\n";
         }else if(lecture=="f") {
-            int v1,v2,v3;
-            int vt1,vt2,vt3;
-            int vn1,vn2,vn3;
-            file>>v1>>v2>>v3;
-            fout<<"--"<<v1<<","<<v2<<","<<v3<<"::";
-            fout<<realPoints[v1]<<","<<realPoints[v2]<<","<<realPoints[v3]<<"\n";
-            this->meshToFace({realPoints[v1],realPoints[v2],realPoints[v3]});
+            vector<int> facePoints;
+            vector<int> texturePoints;
+            vector<int> normalPoints;
+
+            getline(file,lecture);
+            int index = 0;
+            bool ended = false;
+            while(!ended) {
+                //fout<<":)\n";
+                auto [vv,vt,vn] = readFacePoint(lecture,index);
+                //fout<<vv<<" "<<vt<<" "<<vn<<"\n";
+                if(vv == -1) {
+                    ended = true;
+                    continue;
+                }
+
+                facePoints.push_back(realPoints[vv]);
+                texturePoints.push_back(realPoints[vt]);
+                normalPoints.push_back(realPoints[vn]);
+
+
+            }
+            //fout<<sizeOfPointBuffer<<"\n";
+            if(this->meshToFace(facePoints)<0) {
+                fout<<"Error meshing : {";
+                for(auto p: facePoints) {
+                    fout<<p<<", ";
+                }
+                fout<<"} from group: "<<currentGroup->getName()<<"."<<currentObject->getName()<<"\n";
+            }
         }else {
             getline(file,lecture);
         }

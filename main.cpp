@@ -71,8 +71,10 @@ int main(int argv, char ** args) {
     modelo.getTreeHierarchy(fout);*/
 
     Model modelo(1,"Cubito","Práctica 1 de Imagenes");
-    modelo.loadObj("../TestModels/osito.obj");
+    modelo.loadObj("../TestModels/kirbypika.obj");
     //modelo.getTreeHierarchy(fout);
+
+    fout<<modelo.currentObject->getName()<<"\n";
 
 
 
@@ -99,7 +101,9 @@ int main(int argv, char ** args) {
         if(lectura=='f')drawFaces=!drawFaces;
 
         //modelo.currentObject->translate(0,0,12);
-        modelo.currentObject->rotate(0.01,0.01,0.01);
+        for(Object *obj : modelo.objects) { 
+            obj->rotate(0.01,0.01,0.01);
+        }
         modelo.currentObject->translate(0,0,0);
         Mat4_t aux = modelo.currentObject->getMatrix();
 
@@ -110,7 +114,8 @@ int main(int argv, char ** args) {
         drawer->changeBrushColor({230,199,103,255});
 
         if(drawFaces)
-            modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
+            modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
+            //modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
 
         drawer->changeBrushColor({76,75,22,255});
         if(drawEdges)
