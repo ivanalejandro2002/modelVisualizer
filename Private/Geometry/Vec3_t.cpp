@@ -42,14 +42,14 @@ double Vec3_t::length() const{
     return sqrt( x * x + y * y + z * z );
 }
 
-Vec3_t Vec3_t::cross(const Vec3_t& a, const Vec3_t& b){
-    return {a.y * b.z - b.y * a.z,
-            a.z * b.x - b.z * a.x,
-            a.x * b.y - b.x * a.y};
+Vec3_t Vec3_t::cross(const Vec3_t& b) const {
+    return {y * b.z - b.y * z,
+            z * b.x - b.z * x,
+            x * b.y - b.x * y};
 }
 
-double Vec3_t::dot(const Vec3_t& a, const Vec3_t& b){
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+double Vec3_t::dot(const Vec3_t& b) const {
+    return x * b.x + y * b.y + z * b.z;
 }
 
 Vec3_t Vec3_t::rotate_x(const double angle) const{

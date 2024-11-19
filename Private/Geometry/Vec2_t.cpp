@@ -35,6 +35,15 @@ Vec2_t& Vec2_t::operator=(const Vec2_t& rhs) {
     return *this;
 }
 
+bool Vec2_t::operator==(const Vec2_t &p) const {
+    return abs(x - p.x) <=1e-8 && abs(y - p.y) <=1e-8;
+}
+
+bool Vec2_t::operator!=(const Vec2_t &p) const {
+    return !(*this == p);
+}
+
+
 double Vec2_t::length() const{
     return sqrt( x * x + y * y);
 }
@@ -63,4 +72,8 @@ void Vec2_t::setX(const double _x) {
 }
 void Vec2_t::setY(const double _y) {
     y = _y;
+}
+
+double Vec2_t::cross(const Vec2_t & p) const {
+    return x * p.y - y * p.x;
 }

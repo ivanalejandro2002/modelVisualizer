@@ -71,7 +71,7 @@ int main(int argv, char ** args) {
     modelo.getTreeHierarchy(fout);*/
 
     Model modelo(1,"Cubito","Práctica 1 de Imagenes");
-    modelo.loadObj("../TestModels/tetera.obj");
+    modelo.loadObj("../TestModels/kirbypika.obj");
     //modelo.getTreeHierarchy(fout);
 
     fout<<modelo.currentObject->getName()<<"\n";
@@ -92,35 +92,18 @@ int main(int argv, char ** args) {
         int azul = rand()%200+30;
         colorForFaces[i] = (rojo*1000000+verde*1000+azul);
     }
-    double accumulative = 0;
-    double aum = 0.05;
+
     while(controller->getRunning()) {
         int previousFrameTime = SDL_GetTicks();
         lectura = controller->process_input();
         if(lectura=='v')drawVertex=!drawVertex;
         if(lectura=='l')drawEdges=!drawEdges;
         if(lectura=='f')drawFaces=!drawFaces;
-        if(lectura=='p') {
-            controller->setTypeOfView((controller->getTypeOfView()+1)%3);
-        }
 
         //modelo.currentObject->translate(0,0,12);
-
-        if(accumulative<-10){
-            aum=+0.05;
-        }else if(accumulative>10){
-            aum = -0.05;
+        for(Object *obj : modelo.objects) {
+            obj->rotate(0.01,0.01,0.01);
         }
-        for(Object *obj : modelo.objects) { 
-            //obj->rotate(0.01,0.01,0.00);
-
-            //obj->translate(0,0,-accumulative);
-            //obj->rotate(0.01,0.01,0.01);
-
-            obj->translate(0.00,0.00,aum);
-
-        }
-        accumulative+=aum;
         modelo.currentObject->translate(0,0,0);
         Mat4_t aux = modelo.currentObject->getMatrix();
 
@@ -132,7 +115,7 @@ int main(int argv, char ** args) {
 
         if(drawFaces)
             modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
-        //modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
+            //modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
 
         drawer->changeBrushColor({76,75,22,255});
         if(drawEdges)
@@ -141,18 +124,10 @@ int main(int argv, char ** args) {
         if(const int timeToWait = FRAME_TARGET_TIME - (SDL_GetTicks()-previousFrameTime); timeToWait >0 && timeToWait <= FRAME_TARGET_TIME){
             SDL_Delay(timeToWait);
         }
-        drawer->changeBrushColor({0,0,255,255});
-        modelo.renderCamera(controller->getTypeOfView(),drawer,controller->getFov());
-
-        drawer->changeBrushColor({255,0,0,255});
-        modelo.renderCameraVector(controller->getTypeOfView(),drawer,controller->getFov());
 
         //drawer->drawFilledTriangle({{10,500},{0,550},{200,500}});
         //drawer->drawCircle(100,100,100);
         //drawer->drawEllipseMidPoint(100,50,100,100);
-        //drawer->changeBrushColor({0,255,0,10});
-        //drawer->drawScanLineFill({{10,10},{20,10},{60,60},{10,20}});
-        //drawer->drawScanLineFill({{-1000,-1000},{1000,-1000},{1000,1000},{-1000,1000}});
         drawer->updateScreen();
         drawer->fillColor({0,0,0,255});
     }

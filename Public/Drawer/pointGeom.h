@@ -83,3 +83,36 @@ pointGeom intersectLines(const pointGeom & a1, const pointGeom & v1, const point
 	ld det = v1.cross(v2);
 	return a1 + v1 * ((a2 - a1).cross(v2) / det);
 }
+
+int intersectLineSegmentInfo(const pointGeom & a, const pointGeom & v, const pointGeom & c, const pointGeom & d){
+	//line a+tv, segment cd
+	pointGeom v2 = d - c;
+	ld det = v.cross(v2);
+	if(eq(det, 0)){
+		if(eq((c - a).cross(v), 0)){
+			return -1; //infinity points
+		}else{
+			return 0; //no point
+		}
+	}else{
+		return sgn(v.cross(c - a)) != sgn(v.cross(d - a)); //1: single point, 0: no point
+	}
+}
+
+vector<pointGeom> cutPolygon(const vector<pointGeom> & P, const pointGeom & a, const pointGeom & v){
+	//returns the part of the convex polygon P on the left side of line a+tv
+	int n = P.size();
+	vector<pointGeom> lhs;
+	for(int i = 0; i < n; ++i){
+		if(geq(v.cross(P[i] - a), 0)){
+			lhs.push_back(P[i]);
+		}
+		if(intersectLineSegmentInfo(a, v, P[i], P[(i+1)%n]) == 1){
+			pointGeom p = intersectLines(a, v, P[i], P[(i+1)%n] - P[i]);
+			if(p != P[i] && p != P[(i+1)%n]){
+				lhs.push_back(p);
+			}
+		}
+	}
+	return lhs;
+}

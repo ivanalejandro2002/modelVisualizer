@@ -23,8 +23,8 @@ public:
     Vec3_t operator *(double) const;
     Vec3_t operator /(double) const;
 
-    static Vec3_t cross(const Vec3_t& a, const Vec3_t& b);
-    static double dot(const Vec3_t& a, const Vec3_t& b);
+    Vec3_t cross(const Vec3_t& b) const;
+    double dot(const Vec3_t& b) const;
 
     [[nodiscard]] Vec3_t rotate_x(double) const;
     [[nodiscard]] Vec3_t rotate_y(double) const;

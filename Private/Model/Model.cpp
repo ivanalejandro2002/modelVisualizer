@@ -7,6 +7,9 @@ Model::Model(const int id, const std::string &name, const std::string &descripti
     this->name = name;
     this->description = description;
 
+    camera.setPosition({0,0,0});
+    camera.setTarget({0,0,0});
+
     numberOfFaces = 0;
     numberOfObjects = 0;
     numberOfPoints = 0;
@@ -362,8 +365,11 @@ void Model::getTreeHierarchy(ofstream &fileOut) const {
 }
 
 void Model::renderPoints(const int style, const Drawer *drawer, const int fov) const {
+    double EPS = 0;
+    if(style == 2)EPS = 1;
     for(const auto point: points){
         Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+        if(p.getZ()<=EPS)continue;
         Vec2_t location = project(p,style);
         location = location*fov;
         location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
@@ -375,18 +381,39 @@ void Model::renderFaces(const int style, const Drawer *drawer, const int fov) co
     for(const auto face: faces){
         vector<Point *> points = face->getVertices();
         vector<Vec2_t> locations;
+        vector<double> zCoords;
         for(const auto point:points) {
             Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+            zCoords.push_back(p.getZ());
             Vec2_t location = project(p,style);
             location = location*fov;
             location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
 
             locations.push_back(location);
         }
-
+        double A,B;
+        Vec2_t newA(0,0),newB(0,0),delta(0,0);
+        double EPS = 1e-5;
         for(int i = 0 ;i < locations.size(); i++) {
             //drawer->createLineBresenham(locations[i],locations[(i+1)%locations.size()]);
-            drawer->createCheatLine(locations[i],locations[(i+1)%locations.size()]);
+            A = zCoords[i];
+            B = zCoords[(i+1)%locations.size()];
+            newA = locations[i];
+            newB = locations[(i+1)%locations.size()];
+            if(style==2) EPS = 1;
+            if(A<=EPS && B <=EPS)continue;
+            if(A>EPS && B<=EPS) {
+                delta = (newB - newA);
+                delta = delta / (A-B+EPS);
+                newB = newB + delta*B;
+            }
+
+            if(A<=EPS && B>EPS) {
+                delta = newA - newB;
+                delta = delta / (B-A+EPS);
+                newA = newA + delta*A;
+            }
+            drawer->createCheatLine(newA,newB);
 
         }
     }
@@ -409,15 +436,13 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov) co
     }
 }
 
-void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, vector<int> &colors) const {
+void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, const vector<int> &colors) {
     vector< pair<double,pair< vector<Vec2_t> , int > > > rangedFaces;
-    double distance;
     int index = 0;
     for(const auto face: faces){
         vector<Point *> points = face->getVertices();
         vector<Vec2_t> locations;
-        double realX,realY,realZ;
-        realX = realY = realZ = 0;
+        double realZ = 0;
         for(const auto *point:points) {
 
             Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
@@ -430,79 +455,127 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, ve
             locations.push_back(location);
         }
 
-        distance = realZ/(double)points.size();
+        double distance = realZ / static_cast<double>(points.size());
         rangedFaces.push_back({distance,{locations,face->getId()}});
         ++index;
     }
 
-    sort(rangedFaces.begin(),rangedFaces.end());
-    Uint8 red,green,blue;
-    for(int i = (int)rangedFaces.size()-1;i >= 0; --i){
-        red = colors[rangedFaces[i].second.second]/1000000;
-        green = (colors[rangedFaces[i].second.second]/1000)%1000;
-        blue = rangedFaces[i].second.second%1000;
+    ranges::sort(rangedFaces);
+    for(int i = static_cast<int>(rangedFaces.size())-1;i >= 0; --i){
+        const Uint8 red = colors[rangedFaces[i].second.second] / 1000000;
+        const Uint8 green = (colors[rangedFaces[i].second.second] / 1000) % 1000;
+        const Uint8 blue = rangedFaces[i].second.second % 1000;
         drawer->changeBrushColor({red,green,blue,255});
         drawer->drawFilledTriangle(rangedFaces[i].second.first);
     }
 
 }
 
-void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov, vector<int> &colors) const {
+void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov, const vector<int> &colors) {
     vector< pair<double,pair< vector<Vec2_t> , int > > > rangedFaces;
-    double distance;
     int index = 0;
+    double EPS  = 0;
+    if(style == 2)EPS = 1;
     for(const auto *group: groups) {
         for(const auto *object:group->objects) {
             for(const auto face: object->faces) {
                 vector<Point *> points = face->getVertices();
                 vector<Vec2_t> locations;
-                double realX,realY,realZ;
-                realX = realY = realZ = 0;
+                vector<Vec3_t> locations3D;
+                double realZ = 0;
+                double realY = 0;
+                double realX = 0;
+                bool atLeastOne = false;
+                bool allAlong = true;
                 for(const auto *point:points) {
 
                     Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
                     Vec3_t locationX = projectTo3D(p,style);
                     Vec2_t location = {locationX.getX(),locationX.getY()};
                     realZ += locationX.getZ();
+                    realY += locationX.getY();
+                    realX += locationX.getX();
                     location = location*fov;
                     location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
 
                     locations.push_back(location);
-                }
+                    locations3D.push_back(locationX);
 
-                distance = realZ/(double)points.size();
+                    if(locationX.getZ()>EPS)atLeastOne = true;
+                    if(locationX.getZ()<=EPS)allAlong = false;
+                }
+                if(style==2 && !allAlong)continue;
+                if(!atLeastOne)continue;
+
+                if(!isVisibleVec(locations3D))continue;
+
+                double distance = (Vec3_t(realX , realY , realZ) / static_cast<double>(points.size()) - camera.getPosition()).length();
                 rangedFaces.push_back({distance,{locations,face->getId()}});
                 ++index;
             }
         }
     }
 
-    sort(rangedFaces.begin(),rangedFaces.end());
-    Uint8 red,green,blue;
-    for(int i = (int)rangedFaces.size()-1;i >= 0; --i){
-        red = colors[rangedFaces[i].second.second]/1000000;
-        green = (colors[rangedFaces[i].second.second]/1000)%1000;
-        blue = rangedFaces[i].second.second%1000;
+    ranges::sort(rangedFaces);
+    bool allAlong = true;
+    for(int i = static_cast<int>(rangedFaces.size())-1;i >= 0; --i){
+        const Uint8 red = colors[rangedFaces[i].second.second] / 1000000;
+        const Uint8 green = (colors[rangedFaces[i].second.second] / 1000) % 1000;
+        const Uint8 blue = rangedFaces[i].second.second % 1000;
         drawer->changeBrushColor({red,green,blue,255});
-        drawer->drawFilledTriangle(rangedFaces[i].second.first);
+
+        for(const Vec2_t& point: rangedFaces[i].second.first) {
+            if(point.getX() < 0 || point.getY() < 0 || point.getX() > drawer->getWidth() || point.getY() > drawer->getHeight())allAlong = false;
+        }
+        if(allAlong)
+            drawer->drawFilledTriangle(rangedFaces[i].second.first);
+        else {
+            drawer->drawScanLineFill(rangedFaces[i].second.first);
+        }
     }
 }
 
-Vec2_t Model::project(Vec3_t &p, const int type) {
+void Model::renderCamera(const int style, const Drawer *drawer, const int fov) {
+    Vec3_t p = camera.getPosition();
+    Vec2_t location = project(p,style);
+    location = location*fov;
+    location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+    drawer->drawPoint(static_cast<int>(location.getX()),static_cast<int>(location.getY()));
+}
+
+void Model::renderCameraVector(const int style, const Drawer *drawer, const int fov) {
+    Vec3_t p = camera.getPosition();
+    Vec3_t dir = {0,0,1};
+    dir = (camera.getDirectionMatrix() * dir.toVec4()).toVec3();
+    Vec2_t location = project(dir,style);
+    location = location*fov;
+    location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+    drawer->drawPoint(static_cast<int>(location.getX()),static_cast<int>(location.getY()));
+
+    drawer->createCheatLine({drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2)},location);
+}
+
+
+Vec2_t Model::project(const Vec3_t &p, const int type) {
     //0 Isometric
     //1 Plano
     double prevX = p.getX();
-    double prevY = p.getY();
-    double prevZ = p.getZ();
+    const double prevY = p.getY();
     if(type == 0){
         return {prevX,-prevY};
-    }else{
-        Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
+    }else if(type==1){
+        const Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
         return {nuevo.getX(),-nuevo.getY()};
+    }else if(type==2) {
+        if(p.getZ()==0) {
+            return {p.getX(),p.getY()};
+        }
+        return {prevX/p.getZ(),-prevY/p.getZ()};
     }
+    return {p.getX(),-p.getY()};
 }
 
-Vec3_t Model::projectTo3D(Vec3_t &p, const int type) {
+Vec3_t Model::projectTo3D(const Vec3_t &p, const int type) {
     //0 Isometric
     //1 Plano
     double prevX = p.getX();
@@ -510,10 +583,18 @@ Vec3_t Model::projectTo3D(Vec3_t &p, const int type) {
     double prevZ = p.getZ();
     if(type == 0){
         return {prevX,-prevY,prevZ};
-    }else{
+    }else if(type==1){
         Vec3_t nuevo = (Mat4_t::isometric()*p.toVec4()).toVec3();
         return {nuevo.getX(),-nuevo.getY(),prevZ};
+    }else if(type==2) {
+        //vec3_t nuevo =
+        const Vec3_t nuevo = (camera.getAntiDirectionalMatrix() * p.toVec4()).toVec3();
+        if(nuevo.getZ() == 0) {
+            return nuevo;
+        }
+        return {nuevo.getX()/nuevo.getZ(),-nuevo.getY()/nuevo.getZ(),prevZ};
     }
+    return {prevX,-prevY,prevZ};
 }
 
 void getNumAutomaton(const string &input,int &index, int &value) {
@@ -525,9 +606,9 @@ void getNumAutomaton(const string &input,int &index, int &value) {
 }
 
 tuple <int,int,int> Model::readFacePoint(const string &input,int &index) {
-    int v,t,n;
+    int t,n;
     while(index<input.length() && input[index] == ' ')index++;
-    v = n = t = -1;
+    int v = n = t = -1;
     if(index<input.length() && input[index] != '/') {
         v = 0;
         getNumAutomaton(input,index,v);
@@ -669,3 +750,31 @@ void Model::loadObj(const string &inputFile) {
         }
     }
 }
+
+bool Model::isVisible(const Face &face) {
+    double component = 0;
+    const vector<Point *> vertexes = face.getVertices();
+
+    const Vec3_t A = vertexes[2]->toVec3_t() - vertexes[0]->toVec3_t();
+    const Vec3_t B = vertexes[1]->toVec3_t() - vertexes[0]->toVec3_t();
+    const Vec3_t cameraRay = camera.getPosition() - vertexes[0]->toVec3_t();
+
+    const Vec3_t normal = A.cross(B);
+
+    component = normal.dot(cameraRay);
+    return component>-1e-1;
+}
+
+bool Model::isVisibleVec(const vector<Vec3_t> &vertexes) {
+    double component = 0;
+
+    const Vec3_t A = vertexes[2] - vertexes[0];
+    const Vec3_t B = vertexes[1] - vertexes[0];
+    const Vec3_t cameraRay = camera.getPosition() - vertexes[0];
+
+    const Vec3_t normal = A.cross(B);
+
+    component = normal.dot(cameraRay);
+    return component>-2.5e-2;
+}
+
