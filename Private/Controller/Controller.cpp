@@ -51,6 +51,8 @@ char Controller::process_input() {
             returnValue = 'f';
         if(event.key.keysym.sym == SDLK_v)
             returnValue = 'v';
+        if(event.key.keysym.sym == SDLK_p)
+            returnValue = 'p';
 
         break;
         default: ;
@@ -64,5 +66,9 @@ int Controller::getFov() const {
 
 int Controller::getTypeOfView() const {
     return typeOfView;
+}
+
+void Controller::setTypeOfView(const int typeOfView) {
+    Controller::typeOfView = typeOfView;
 }
 

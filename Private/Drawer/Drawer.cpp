@@ -11,7 +11,7 @@ Drawer::Drawer(int _width, int _height, const string& title) {
     fillScreen();
 }
 
-Drawer::~Drawer() {}
+Drawer::~Drawer() = default;
 
 vector<pair<int,int> > Drawer::bresenhamByX(int x1, int y1, int x2, int y2) {
 
@@ -191,8 +191,11 @@ void Drawer::createLineBresenham(Vec2_t p1, Vec2_t p2) const{
     }
 }
 
-void Drawer::createCheatLine(Vec2_t p1, Vec2_t p2) const {
-    SDL_RenderDrawLine(renderer,p1.getX(),p1.getY(),p2.getX(),p2.getY());
+void Drawer::createCheatLine(const Vec2_t& p1, const Vec2_t& p2) const {
+    SDL_RenderDrawLine(renderer,static_cast<int>(p1.getX()),
+                                static_cast<int>(p1.getY()),
+                                static_cast<int>(p2.getX()),
+                                static_cast<int>(p2.getY()));
 }
 
 void Drawer::drawPolygon(const vector<Vec2_t > &polygon) const{
@@ -289,7 +292,7 @@ void Drawer::drawFlatTop(const vector<Vec2_t> &pts) {
     int startY = (int)pts[2].getY();
     int endY = (int)pts[0].getY();
     for(int i=startY;i>=endY;i--){
-        drawHorizontalLine(i,(int)xStart,(int)xEnd);
+        drawHorizontalLine(i,max(static_cast<int>(xStart),0),min(static_cast<int>(xEnd),width));
         xStart+=m1;
         if(abs(pts[0].getX()-origin)<abs(xStart-origin)){
             xStart = pts[0].getX();
@@ -319,7 +322,7 @@ void Drawer::drawFLatBottom(const vector<Vec2_t> &pts) {
     int startY = (int)pts[0].getY();
     int endY = (int)pts[2].getY();
     for(int i=startY;i<=endY;i++){
-        drawHorizontalLine(i,(int)xStart,(int)xEnd);
+        drawHorizontalLine(i,max(static_cast<int>(xStart),0),min(static_cast<int>(xEnd),width));
         xStart+=m1;
         if(abs(pts[2].getX()-origin)<abs(xStart-origin)){
             xStart = pts[2].getX();
@@ -327,6 +330,220 @@ void Drawer::drawFLatBottom(const vector<Vec2_t> &pts) {
         xEnd+=m2;
         if(abs(pts[1].getX()-origin)<abs(xEnd-origin)){
             xEnd = pts[1].getX();
+        }
+    }
+}
+
+void Drawer::circleSymmetry(const int xc, const int yc, const int x, const int y) const {
+    drawPoint(xc+x, yc+y);
+    drawPoint(xc-x, yc+y);
+    drawPoint(xc+x, yc-y);
+    drawPoint(xc-x, yc-y);
+    drawPoint(xc+y, yc+x);
+    drawPoint(xc-y, yc+x);
+    drawPoint(xc+y, yc-x);
+    drawPoint(xc-y, yc-x);
+}
+
+
+void Drawer::drawCircle(const int xc, const int yc, const int r) const {
+    int x = 0, y = r;
+    int d = 3 - 2 * r;
+    circleSymmetry(xc, yc, x, y);
+    while (y >= x){
+
+        // check for decision parameter
+        // and correspondingly
+        // update d, y
+        if (d > 0) {
+            y--;
+            d = d + 4 * (x - y) + 10;
+        }
+        else
+            d = d + 4 * x + 6;
+
+        // Increment x after updating decision parameter
+        x++;
+
+        // Draw the circle using the new coordinates
+        circleSymmetry(xc, yc, x, y);
+    }
+}
+
+void Drawer::drawEllipseMidPoint(int rx, int ry , int xc, int yc) const {
+    float x = 0;
+    float y = ry;
+
+    // Initial decision parameter of region 1
+    float d1 = (ry * ry) - (rx * rx * ry) +
+               (0.25 * rx * rx);
+    float dx = 2 * ry * ry * x;
+    float dy = 2 * rx * rx * y;
+
+    // For region 1
+    while (dx < dy)
+    {
+
+        // Print points based on 4-way symmetry
+        drawPoint(x + xc,y + yc);
+        drawPoint(-x + xc,y + yc);
+        drawPoint(x + xc,-y + yc);
+        drawPoint(-x + xc,-y + yc);
+
+
+        // Checking and updating value of
+        // decision parameter based on algorithm
+        if (d1 < 0)
+        {
+            x++;
+            dx = dx + (2 * ry * ry);
+            d1 = d1 + dx + (ry * ry);
+        }
+        else
+        {
+            x++;
+            y--;
+            dx = dx + (2 * ry * ry);
+            dy = dy - (2 * rx * rx);
+            d1 = d1 + dx - dy + (ry * ry);
+        }
+    }
+
+    // Decision parameter of region 2
+    float d2 = ((ry * ry) * ((x + 0.5) * (x + 0.5))) +
+               ((rx * rx) * ((y - 1) * (y - 1))) -
+               (rx * rx * ry * ry);
+
+    // Plotting points of region 2
+    while (y >= 0)
+    {
+
+        // Print points based on 4-way symmetry
+        drawPoint(x + xc,y + yc);
+        drawPoint(-x + xc,y + yc);
+        drawPoint(x + xc,-y + yc);
+        drawPoint(-x + xc,-y + yc);
+
+        // Checking and updating parameter
+        // value based on algorithm
+        if (d2 > 0)
+        {
+            y--;
+            dy = dy - (2 * rx * rx);
+            d2 = d2 + (rx * rx) - dy;
+        }
+        else
+        {
+            y--;
+            x++;
+            dx = dx + (2 * ry * ry);
+            dy = dy - (2 * rx * rx);
+            d2 = d2 + dx - dy + (rx * rx);
+        }
+    }
+}
+
+int Drawer::sgnd(const double x) {
+    if(x > 1e-8)return 1;
+    if(-x > 1e-8)return -1;
+    return 0;
+}
+
+Vec2_t Drawer::intersectLinesD(const Vec2_t &a1, const Vec2_t &v1, const Vec2_t &a2, const Vec2_t &v2) {
+    const double det = v1.cross(v2);
+    return a1 + v1 * ((a2 - a1).cross(v2) / det);
+}
+
+
+int Drawer::intersectLineSegmentInfo(const Vec2_t & a, const Vec2_t & v, const Vec2_t & c, const Vec2_t & d) {
+    const Vec2_t v2 = d - c;
+    const double det = v.cross(v2);
+    double EPS = 1e-8;
+    if(abs(det) <= EPS) {
+        if(abs((c - a).cross(v))<=EPS) {
+            return -1;
+        }else {
+            return 0;
+        }
+    }else {
+        return sgnd(v.cross(c -a) != sgnd(v.cross(d-a)));
+    }
+}
+
+
+vector<Vec2_t> Drawer::polygonCut(const vector<Vec2_t> & P, const Vec2_t & a,const  Vec2_t & v) {
+    int n = static_cast<int>(P.size());
+
+    vector<Vec2_t> lhs;
+    double EPS = 1e-9;
+
+    for(int i = 0; i < n; i++) {
+        if(v.cross(P[i] - a) >= -EPS) {
+            lhs.push_back(P[i]);
+        }
+
+        if(intersectLineSegmentInfo(a, v, P[i], P[(i + 1) % n]) == 1) {
+            Vec2_t p = intersectLinesD(a, v, P[i], P[(i + 1) % n] - P[i]);
+            if(p != P[i] && p != P[(i + 1) % n]) {
+                lhs.push_back(p);
+            }
+        }
+    }
+    return lhs;
+}
+
+
+void Drawer::drawScanLineFill(vector<Vec2_t> points) {
+    vector<pointGeom> temporal;
+    for(const Vec2_t& p : points) {
+        temporal.emplace_back(p.getX(), p.getY());
+    }
+
+    temporal = cutPolygon(temporal, {0,0},{0,-1});
+    temporal = cutPolygon(temporal, {0,0},{1,0});
+    temporal = cutPolygon(temporal, {static_cast<double>(width),static_cast<double>(height)},{0,1});
+    temporal = cutPolygon(temporal, {static_cast<double>(width),static_cast<double>(height)},{-1,0});
+
+    points.clear();
+    for(auto p : temporal) {
+        points.emplace_back(p.x,p.y);
+    }
+
+    int minY = INT_MAX;
+    int maxY = INT_MIN;
+    for(const Vec2_t& point: points) {
+        minY = min(minY,static_cast<int>(point.getY()));
+        maxY = max(maxY,static_cast<int>(point.getY()));
+    }
+
+    vector<pair<Vec2_t , Vec2_t> > edges;
+
+    for(int i = 0; i < points.size(); i++) {
+        Vec2_t p1 = points[i];
+        Vec2_t p2 = points[(i+1)%points.size()];
+        if(p1.getY() != p2.getY()) {
+            if(p1.getY()>p2.getY())
+                swap(p1,p2);
+
+            edges.emplace_back(p1 , p2);
+        }
+    }
+    for(int i = minY ; i<=maxY ; i++) {
+        vector<int> intersections;
+        for(const auto&[p1, p2] : edges) {
+            if(p1.getY() <= i && i < p2.getY()) {
+                const double dx = p2.getX() - p1.getX();
+                const double dy = p2.getY() - p1.getY();
+                const double x = p1.getX() + (i - p1.getY()) * (dx / dy);
+                intersections.push_back(static_cast<int>(x));
+            }
+        }
+
+        ranges::sort(intersections);
+        for(int j = 0; j < intersections.size(); j += 2) {
+            if(j+1 < intersections.size()) {
+                drawHorizontalLine(i, intersections[j], intersections[j+1]);
+            }
         }
     }
 }

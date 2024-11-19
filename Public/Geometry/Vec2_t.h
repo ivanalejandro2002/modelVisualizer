@@ -17,6 +17,8 @@ class Vec2_t{
         Vec2_t operator *(double) const;
         Vec2_t operator /(double) const;
         Vec2_t& operator =(const Vec2_t &);
+        bool operator==(const Vec2_t &) const;
+        bool operator !=(const Vec2_t &) const;
         bool operator <(const Vec2_t &) const;
 
         [[nodiscard]] double getX() const;
@@ -26,4 +28,6 @@ class Vec2_t{
         void setY(double);
 
         void normalize();
+
+        [[nodiscard]] double cross(const Vec2_t &) const;
 };

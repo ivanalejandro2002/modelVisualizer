@@ -14,6 +14,7 @@ class Controller {
         void setRunning(bool);
         [[nodiscard]] int getFov() const;
         [[nodiscard]] int getTypeOfView() const;
+        void setTypeOfView(int);
 
         char process_input();
 };

@@ -28,7 +28,7 @@ public:
     static vector<pair<int,int> > bresenham(int,int,int,int);
 
     void createLineBresenham(Vec2_t , Vec2_t ) const;
-    void createCheatLine(Vec2_t,Vec2_t) const;
+    void createCheatLine(const Vec2_t&,const Vec2_t&) const;
     void drawPolygon(const vector<Vec2_t> &) const;
     void drawConnectedPolygon(const vector<Vec2_t > &) const;
 
@@ -41,4 +41,15 @@ public:
     void drawFilledTriangle(vector<Vec2_t> );
     void drawFlatTop(const vector<Vec2_t>& );
     void drawFLatBottom(const vector<Vec2_t> &);
+
+    void drawCircle(int, int, int) const;
+    void circleSymmetry(int,int,int,int) const;
+
+    void drawEllipseMidPoint(int,int,int,int) const ;
+
+    static int sgnd(const double);
+    static Vec2_t intersectLinesD(const Vec2_t &, const Vec2_t &, const Vec2_t &, const Vec2_t &);
+    int intersectLineSegmentInfo(const Vec2_t &,const Vec2_t &, const Vec2_t &, const Vec2_t &);
+    vector<Vec2_t> polygonCut(const vector<Vec2_t> &,const Vec2_t &,const Vec2_t &);
+    void drawScanLineFill(vector<Vec2_t>);
 };
