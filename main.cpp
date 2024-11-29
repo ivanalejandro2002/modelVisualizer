@@ -81,8 +81,8 @@ int main(int argv, char ** args) {
     drawer->changeBrushColor({255,255,255,255});
     int fov = 400;
     char lectura;
-    bool drawVertex = true;
-    bool drawEdges = false;
+    bool drawVertex = false;
+    bool drawEdges = true;
     bool drawFaces = false;
     fout<<modelo.sizeOfFacesBuffer<<"\n";
     vector<int> colorForFaces(modelo.sizeOfFacesBuffer+1);

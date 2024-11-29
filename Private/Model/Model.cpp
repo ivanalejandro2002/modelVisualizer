@@ -1,6 +1,7 @@
 #include "../../Public/Model/Model.h"
 #include <algorithm>
 #include <thread>
+#include <cassert>
 
 Model::Model(const int id, const std::string &name, const std::string &description){
     this->id = id;
@@ -368,70 +369,107 @@ void Model::getTreeHierarchy(ofstream &fileOut) const {
     }
 }
 
-void Model::renderPoints(const int style, const Drawer *drawer, const int fov) const {
+void Model::renderPoints(const int style, const Drawer *drawer, const int fov){
     double EPS = 0;
     if(style == 2)EPS = 1;
-    for(const auto point: points){
-        Vec3_t p = {0,0,0};
-        Vec2_t location = {0,0};
-
-        if(!point->getUpdated()) {
-
-            p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
-            point->setUpdated(true);
-            point->setNewCoordinates(p);
-            if (p.getZ() <= EPS)continue;
-            Vec2_t location = project(p, style);
-            location = location * fov;
-            location = location + Vec2_t(drawer->getWidth() / static_cast<double>(2),
-                                         drawer->getHeight() / static_cast<double>(2));
-            point->setScreenCoords(location);
-        }else{
-            if(point->getNewCoordinates().getZ()<=EPS)continue;
-            location = point->getScreenCoords();
+    for(const auto object : this->objects) {
+        Mat4_t transition = object->getMatrix();
+        if(style==1){
+            transition = Mat4_t::isometric()*transition;
+        }else if(style==2) {
+            //vec3_t nuevo =
+            transition = camera.getAntiDirectionalMatrix() * transition;
         }
-        drawer->drawPoint(static_cast<int>(location.getX()),static_cast<int>(location.getY()));
+        for(const auto face: object->faces) {
+            for(const auto point: face->getVertices()){
+                Vec3_t p = {0,0,0};
+                Vec2_t location = {0,0};
+
+                if(!point->getUpdated()) {
+
+                    p = (transition * (point->toVec4())).toVec3();
+                    p = projectTo3DSimplified(p, style);
+                    point->setUpdated(true);
+                    point->setNewCoordinates(p);
+
+                    location = {p.getX(),p.getY()};
+                    location = location * fov;
+                    location = location + Vec2_t(drawer->getWidth() / static_cast<double>(2),
+                                                 drawer->getHeight() / static_cast<double>(2));
+                    point->setScreenCoords(location);
+
+                    if (p.getZ() <= EPS)continue;
+                }else{
+                    if(point->getNewCoordinates().getZ()<=EPS)continue;
+                    location = point->getScreenCoords();
+                }
+                drawer->drawPoint(static_cast<int>(location.getX()),static_cast<int>(location.getY()));
+            }
+        }
     }
 }
 
-void Model::renderFaces(const int style, const Drawer *drawer, const int fov) const {
-    for(const auto face: faces){
-        vector<Point *> points = face->getVertices();
-        vector<Vec2_t> locations;
-        vector<double> zCoords;
-        for(const auto point:points) {
-            Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
-            zCoords.push_back(p.getZ());
-            Vec2_t location = project(p,style);
-            location = location*fov;
-            location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+void Model::renderFaces(const int style, const Drawer *drawer, const int fov) {
+    for(const auto object: objects) {
+        Mat4_t transition = object->getMatrix();
 
-            locations.push_back(location);
+        if(style==1){
+            transition = Mat4_t::isometric()*transition;
+        }else if(style==2) {
+            //vec3_t nuevo =
+            transition = camera.getAntiDirectionalMatrix() * transition;
         }
-        double A,B;
-        Vec2_t newA(0,0),newB(0,0),delta(0,0);
-        double EPS = 1e-5;
-        for(int i = 0 ;i < locations.size(); i++) {
-            //drawer->createLineBresenham(locations[i],locations[(i+1)%locations.size()]);
-            A = zCoords[i];
-            B = zCoords[(i+1)%locations.size()];
-            newA = locations[i];
-            newB = locations[(i+1)%locations.size()];
-            if(style==2) EPS = 1;
-            if(A<=EPS && B <=EPS)continue;
-            if(A>EPS && B<=EPS) {
-                delta = (newB - newA);
-                delta = delta / (A-B+EPS);
-                newB = newB + delta*B;
-            }
 
-            if(A<=EPS && B>EPS) {
-                delta = newA - newB;
-                delta = delta / (B-A+EPS);
-                newA = newA + delta*A;
-            }
-            drawer->createCheatLine(newA,newB);
 
+        for(const auto face: object->faces){
+            vector<Point *> points = face->getVertices();
+            vector<Vec2_t> locations;
+            vector<double> zCoords;
+            Vec3_t p = {0,0,0};
+            Vec2_t location = {0,0};
+            for(Point* point:face->getVertices()) {
+                if(!point->getUpdated()) {
+
+                    p = (transition * (point->toVec4())).toVec3();
+                    p = projectTo3DSimplified(p, style);
+                    point->setNewCoordinates(p);
+                    zCoords.push_back(p.getZ());
+                    location = {p.getX(),p.getY()};
+                    location = location*fov;
+                    location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+                    point->setScreenCoords(location);
+                    point->setUpdated(true);
+                }else {
+                    p = point->getNewCoordinates();
+                    location = point->getScreenCoords();
+                    zCoords.push_back(p.getZ());
+                }
+                locations.push_back(location);
+            }
+            Vec2_t newA(0,0),newB(0,0),delta(0,0);
+            double EPS = 1e-5;
+            for(int i = 0 ;i < locations.size(); i++) {
+                //drawer->createLineBresenham(locations[i],locations[(i+1)%locations.size()]);
+                const double A = zCoords[i];
+                const double B = zCoords[(i + 1) % locations.size()];
+                newA = locations[i];
+                newB = locations[(i+1)%locations.size()];
+                if(style==2) EPS = 1;
+                if(A<=EPS && B <=EPS)continue;
+                if(A>EPS && B<=EPS) {
+                    delta = (newB - newA);
+                    delta = delta / (A-B+EPS);
+                    newB = newB + delta*B;
+                }
+
+                if(A<=EPS && B>EPS) {
+                    delta = newA - newB;
+                    delta = delta / (B-A+EPS);
+                    newA = newA + delta*A;
+                }
+                drawer->createCheatLine(newA,newB);
+
+            }
         }
     }
 }
@@ -440,7 +478,7 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov) co
     for(const auto face: faces){
         vector<Point *> points = face->getVertices();
         vector<Vec2_t> locations;
-        for(Point *point:points) {
+        for(const Point *point:points) {
             Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
             Vec2_t location = project(p,style);
             location = location*fov;
@@ -513,18 +551,33 @@ void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov,
                 double realX = 0;
                 bool atLeastOne = false;
                 bool allAlong = true;
-                for(const auto *point:points) {
+                Vec3_t p = {0,0,0};
+                Vec3_t locationX = {0,0,0};
+                Vec2_t location = {0,0};
+                for(auto *point:points) {
+                    if(!point->getUpdated()) {
 
-                    Vec3_t p = (transition * (point->toVec4())).toVec3();
-                    Vec3_t locationX = projectTo3DSimplified(p,style);
+                        //point->setUpdated(true);
+                        p = (transition * (point->toVec4())).toVec3();
+                        locationX = projectTo3DSimplified(p,style);
 
+                        point->setNewCoordinates(locationX);
 
-                    Vec2_t location = {locationX.getX(),locationX.getY()};
-                    realZ += locationX.getZ();
-                    realY += locationX.getY();
-                    realX += locationX.getX();
-                    location = location*fov;
-                    location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+                        location = {locationX.getX(),locationX.getY()};
+                        realZ += locationX.getZ();
+                        realY += locationX.getY();
+                        realX += locationX.getX();
+                        location = location*fov;
+                        location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+
+                        point->setScreenCoords(location);
+                    }else {
+                        locationX = point -> getNewCoordinates();
+                        realZ += locationX.getZ();
+                        realY += locationX.getY();
+                        realX += locationX.getX();
+                        location = point -> getScreenCoords();
+                    }
 
                     locations.push_back(location);
                     locations3D.push_back(locationX);
@@ -601,6 +654,24 @@ Vec2_t Model::project(const Vec3_t &p, const int type) {
         return {prevX/p.getZ(),-prevY/p.getZ()};
     }
     return {p.getX(),-p.getY()};
+}
+
+Vec2_t Model::projectSimplified(const Vec3_t &p, const int type) {
+    //0 Isometric
+    //1 Plano
+    double prevX = p.getX();
+    const double prevY = p.getY();
+    if(type == 0){
+        return {prevX,-prevY};
+    }else if(type==1){
+        return {prevX,-prevY};
+    }else if(type==2) {
+        if(p.getZ()==0) {
+            return {prevX,-prevY};
+        }
+        return {prevX/p.getZ(),-prevY/p.getZ()};
+    }
+    return {prevX,-prevY};
 }
 
 Vec3_t Model::projectTo3D(const Vec3_t &p, const int type) {
@@ -827,7 +898,7 @@ bool Model::isVisibleVec(const vector<Vec3_t> &vertexes) {
 }
 
 void Model::unmarkPoints() {
-    for(auto p: points){
+    for(const auto p: points){
         p->setUpdated(false);
     }
 }

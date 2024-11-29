@@ -115,16 +115,17 @@ class Model{
 
         void getTreeHierarchy(ofstream &) const;
 
-        void renderPoints(int, const Drawer *,int) const;
+        void renderPoints(int, const Drawer *,int);
         void renderFilledFaces(int, Drawer *, int) const;
         void renderFilledFaces(int, Drawer *, int, const vector<int> &);
         void renderAllFilledFaces(int, Drawer *, int, const vector<int> &);
-        void renderFaces(int, const Drawer *,int) const;
+        void renderFaces(int, const Drawer *,int);
 
         void renderCamera(int,const Drawer *,int);
         void renderCameraVector(int,const Drawer *,int);
 
         [[nodiscard]] static Vec2_t project(const Vec3_t &,int type) ;
+        [[nodiscard]] static Vec2_t projectSimplified(const Vec3_t &,int type) ;
         Vec3_t projectTo3D(const Vec3_t &,int type) ;
         Vec3_t projectTo3DSimplified(const Vec3_t &, int type);
 
