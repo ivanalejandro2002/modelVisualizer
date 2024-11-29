@@ -526,8 +526,8 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, co
 
 }
 
-void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov, const vector<int> &colors) {
-    vector< pair<double,pair< vector<Vec2_t> , int > > > rangedFaces;
+void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov) {
+    vector< pair<double,pair< vector<Vec2_t> , pair<int,vector<Vec3_t> > > > > rangedFaces;
     int index = 0;
     double EPS  = 0;
     if(style == 2)EPS = 1;
@@ -591,7 +591,7 @@ void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov,
                 if(!isVisibleVec(locations3D))continue;
 
                 double distance = (Vec3_t(realX , realY , realZ) / static_cast<double>(points.size()) - camera.getPosition()).length();
-                rangedFaces.push_back({distance,{locations,face->getId()}});
+                rangedFaces.push_back({distance,{locations,{face->getColor(),locations3D}}});
                 ++index;
             }
         }
@@ -600,14 +600,17 @@ void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov,
     ranges::sort(rangedFaces);
     bool allAlong = true;
     for(int i = static_cast<int>(rangedFaces.size())-1;i >= 0; --i){
-        const Uint8 red = colors[rangedFaces[i].second.second] / 1000000;
-        const Uint8 green = (colors[rangedFaces[i].second.second] / 1000) % 1000;
-        const Uint8 blue = rangedFaces[i].second.second % 1000;
+        double lightFactor = flatShadingFactor({0,0,-1},{rangedFaces[i].second.second.second});
+        //lightFactor = 1;
+        const Uint8 red = (rangedFaces[i].second.second.first / 1000000)*lightFactor;
+        const Uint8 green = ((rangedFaces[i].second.second.first / 1000) % 1000)*lightFactor;
+        const Uint8 blue = (rangedFaces[i].second.second.first % 1000)*lightFactor;
         drawer->changeBrushColor({red,green,blue,255});
 
         for(const Vec2_t& point: rangedFaces[i].second.first) {
             if(point.getX() < 0 || point.getY() < 0 || point.getX() > drawer->getWidth() || point.getY() > drawer->getHeight())allAlong = false;
         }
+
         if(allAlong)
             drawer->drawFilledTriangle(rangedFaces[i].second.first);
         else {
@@ -901,4 +904,16 @@ void Model::unmarkPoints() {
     for(const auto p: points){
         p->setUpdated(false);
     }
+}
+
+
+double Model::flatShadingFactor(const Vec3_t &light, const vector<Vec3_t> &figure) {
+    Vec3_t A = figure[1] - figure[0];
+    Vec3_t B = figure[2] - figure[0];
+
+    Vec3_t C = A.cross(B);
+    C.normalize();
+
+    double w = abs(C.dot(light));
+    return w;
 }

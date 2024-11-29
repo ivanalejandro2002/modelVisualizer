@@ -118,7 +118,7 @@ class Model{
         void renderPoints(int, const Drawer *,int);
         void renderFilledFaces(int, Drawer *, int) const;
         void renderFilledFaces(int, Drawer *, int, const vector<int> &);
-        void renderAllFilledFaces(int, Drawer *, int, const vector<int> &);
+        void renderAllFilledFaces(int, Drawer *, int);
         void renderFaces(int, const Drawer *,int);
 
         void renderCamera(int,const Drawer *,int);
@@ -138,4 +138,6 @@ class Model{
         bool isVisibleVec(const vector<Vec3_t> &);
 
         void unmarkPoints();
+
+        static double flatShadingFactor(const Vec3_t &, const vector<Vec3_t> &);
 };

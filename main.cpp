@@ -81,16 +81,19 @@ int main(int argv, char ** args) {
     drawer->changeBrushColor({255,255,255,255});
     int fov = 400;
     char lectura;
-    bool drawVertex = false;
-    bool drawEdges = true;
+    bool drawVertex = true;
+    bool drawEdges = false;
     bool drawFaces = false;
     fout<<modelo.sizeOfFacesBuffer<<"\n";
-    vector<int> colorForFaces(modelo.sizeOfFacesBuffer+1);
-    for(int i=0;i<colorForFaces.size();i++){
-        int rojo = rand()%200+30;
-        int verde = rand()%200+30;
-        int azul = rand()%200+30;
-        colorForFaces[i] = (rojo*1000000+verde*1000+azul);
+    for(auto face: modelo.faces){
+        //int rojo = rand()%200+30;
+        //int verde = rand()%200+30;
+        //int azul = rand()%200+30;
+        int rojo = 230;
+        int verde = 190;
+        int azul = 103;
+
+        face->setColor(rojo*1000000+verde*1000+azul);
     }
     double accumulative = 0;
     double aum = 0.05;
@@ -149,7 +152,7 @@ int main(int argv, char ** args) {
         drawer->changeBrushColor({230,199,103,255});
 
         if(drawFaces)
-            modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
+            modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov());
         //modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
 
         drawer->changeBrushColor({76,75,22,255});

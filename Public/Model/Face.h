@@ -15,6 +15,7 @@ class Face{
         Model * model;
         vector<Point *> vertices;
         Object * object;
+        int color;
 
     public:
         Face(int id, const vector<Point *> &, Model * model, Object * object);
@@ -27,6 +28,8 @@ class Face{
         [[nodiscard]] Object * getObject() const;
 
         void setId(int id);
+        void setColor(int);
+        [[nodiscard]] int getColor() const;
 
         void getTreeHierarchy(ofstream &) const;
 };
