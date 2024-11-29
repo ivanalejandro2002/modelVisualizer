@@ -914,6 +914,8 @@ double Model::flatShadingFactor(const Vec3_t &light, const vector<Vec3_t> &figur
     Vec3_t C = A.cross(B);
     C.normalize();
 
-    double w = abs(C.dot(light));
+    double w = -C.dot(light);
+    w = max(w,static_cast<double>(0));
+    w = min(w,static_cast<double>(1));
     return w;
 }
