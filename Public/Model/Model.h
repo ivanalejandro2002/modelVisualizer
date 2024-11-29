@@ -65,6 +65,7 @@ class Model{
         void setDescription(const std::string &description);
         [[nodiscard]] std::string getName() const;
         [[nodiscard]] std::string getDescription() const;
+        [[nodiscard]] Camera getCamera() const;
 
         void setId(int id);
         [[nodiscard]] int getId() const;
@@ -125,6 +126,7 @@ class Model{
 
         [[nodiscard]] static Vec2_t project(const Vec3_t &,int type) ;
         Vec3_t projectTo3D(const Vec3_t &,int type) ;
+        Vec3_t projectTo3DSimplified(const Vec3_t &, int type);
 
         void loadObj(const string &);
 
@@ -133,4 +135,6 @@ class Model{
 
         bool isVisible(const Face &);
         bool isVisibleVec(const vector<Vec3_t> &);
+
+        void unmarkPoints();
 };

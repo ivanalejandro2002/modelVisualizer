@@ -16,4 +16,6 @@ class Camera{
     void setTarget(const Vec3_t &target);
     Mat4_t getDirectionMatrix();
     Mat4_t getAntiDirectionalMatrix();
+
+    void rotateCamera(double x, double y, double z);
 };

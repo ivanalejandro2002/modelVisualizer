@@ -1,9 +1,12 @@
 #include "../../Public/Model/Point.h"
 
-Point::Point(const double _x, const double _y, const double _z, const int id, Model * _model, Object * _object): Vec3_t(_x, _y, _z) {
+Point::Point(const double _x, const double _y, const double _z, const int id, Model * _model, Object * _object): Vec3_t(_x, _y, _z),
+                                                                                                                 newCoordinates(0,0,0),
+                                                                                                                 screenCoords(0,0) {
     this->id = id;
     this->model = _model;
     this->object = _object;
+    this->updated = false;
 
     this->model -> numberOfPoints ++;
 }
@@ -66,6 +69,30 @@ void Point::removeAllFaces() {
 
 Vec3_t Point::toVec3_t() const {
     return {getX() ,getY() ,getZ()};
+}
+
+bool Point::getUpdated(){
+    return updated;
+}
+
+void Point::setUpdated(bool _v) {
+    updated = _v;
+}
+
+Vec3_t Point::getNewCoordinates() {
+    return newCoordinates;
+}
+
+void Point::setNewCoordinates(const Vec3_t & _c) {
+    newCoordinates = _c;
+}
+
+Vec2_t Point::getScreenCoords() {
+    return screenCoords;
+}
+
+void Point::setScreenCoords(const Vec2_t &_v) {
+    screenCoords = _v;
 }
 
 void Point::getTreeHierarchy(ofstream &fileOut) const{

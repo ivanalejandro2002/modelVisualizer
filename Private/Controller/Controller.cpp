@@ -53,6 +53,14 @@ char Controller::process_input() {
             returnValue = 'v';
         if(event.key.keysym.sym == SDLK_p)
             returnValue = 'p';
+        if(event.key.keysym.sym == SDLK_w)
+            returnValue = 'w';
+        if(event.key.keysym.sym == SDLK_a)
+            returnValue = 'a';
+        if(event.key.keysym.sym == SDLK_s)
+            returnValue = 's';
+        if(event.key.keysym.sym == SDLK_d)
+            returnValue = 'd';
 
         break;
         default: ;

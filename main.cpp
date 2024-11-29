@@ -97,11 +97,29 @@ int main(int argv, char ** args) {
     while(controller->getRunning()) {
         int previousFrameTime = SDL_GetTicks();
         lectura = controller->process_input();
-        if(lectura=='v')drawVertex=!drawVertex;
-        if(lectura=='l')drawEdges=!drawEdges;
-        if(lectura=='f')drawFaces=!drawFaces;
+        if(lectura=='v'){
+            drawVertex=!drawVertex;
+            if(!drawVertex && !drawEdges && !drawFaces)
+                drawVertex=!drawVertex;
+        }
+        if(lectura=='l'){
+            drawEdges=!drawEdges;
+            if(!drawVertex && !drawEdges && !drawFaces)
+                drawEdges=!drawEdges;
+        }
+        if(lectura=='f'){
+            drawFaces=!drawFaces;
+            if(!drawVertex && !drawEdges && !drawFaces)
+                drawFaces=!drawFaces;
+        }
         if(lectura=='p') {
             controller->setTypeOfView((controller->getTypeOfView()+1)%3);
+        }
+        if(lectura=='w'){
+            modelo.getCamera().rotateCamera(0.1,0,0);
+        }
+        if(lectura=='s'){
+            modelo.getCamera().rotateCamera(-0.1,0,0);
         }
 
         //modelo.currentObject->translate(0,0,12);
@@ -155,6 +173,8 @@ int main(int argv, char ** args) {
         //drawer->drawScanLineFill({{-1000,-1000},{1000,-1000},{1000,1000},{-1000,1000}});
         drawer->updateScreen();
         drawer->fillColor({0,0,0,255});
+
+        modelo.unmarkPoints();
     }
 
     fout.close();

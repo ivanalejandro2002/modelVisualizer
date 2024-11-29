@@ -48,6 +48,10 @@ std::string Model::getType() const {
     return this->type;
 }
 
+Camera Model::getCamera() const{
+    return camera;
+}
+
 void Model::setId(const int id) {
     this->id = id;
 }
@@ -368,11 +372,24 @@ void Model::renderPoints(const int style, const Drawer *drawer, const int fov) c
     double EPS = 0;
     if(style == 2)EPS = 1;
     for(const auto point: points){
-        Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
-        if(p.getZ()<=EPS)continue;
-        Vec2_t location = project(p,style);
-        location = location*fov;
-        location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+        Vec3_t p = {0,0,0};
+        Vec2_t location = {0,0};
+
+        if(!point->getUpdated()) {
+
+            p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
+            point->setUpdated(true);
+            point->setNewCoordinates(p);
+            if (p.getZ() <= EPS)continue;
+            Vec2_t location = project(p, style);
+            location = location * fov;
+            location = location + Vec2_t(drawer->getWidth() / static_cast<double>(2),
+                                         drawer->getHeight() / static_cast<double>(2));
+            point->setScreenCoords(location);
+        }else{
+            if(point->getNewCoordinates().getZ()<=EPS)continue;
+            location = point->getScreenCoords();
+        }
         drawer->drawPoint(static_cast<int>(location.getX()),static_cast<int>(location.getY()));
     }
 }
@@ -478,6 +495,15 @@ void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov,
     if(style == 2)EPS = 1;
     for(const auto *group: groups) {
         for(const auto *object:group->objects) {
+            Mat4_t transition = object->getMatrix();
+
+            if(style==1){
+                transition = Mat4_t::isometric()*transition;
+            }else if(style==2) {
+                //vec3_t nuevo =
+                transition = camera.getAntiDirectionalMatrix() * transition;
+            }
+
             for(const auto face: object->faces) {
                 vector<Point *> points = face->getVertices();
                 vector<Vec2_t> locations;
@@ -489,8 +515,10 @@ void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov,
                 bool allAlong = true;
                 for(const auto *point:points) {
 
-                    Vec3_t p = (point->getObject()->getMatrix() * (point->toVec4())).toVec3();
-                    Vec3_t locationX = projectTo3D(p,style);
+                    Vec3_t p = (transition * (point->toVec4())).toVec3();
+                    Vec3_t locationX = projectTo3DSimplified(p,style);
+
+
                     Vec2_t location = {locationX.getX(),locationX.getY()};
                     realZ += locationX.getZ();
                     realY += locationX.getY();
@@ -593,6 +621,24 @@ Vec3_t Model::projectTo3D(const Vec3_t &p, const int type) {
             return nuevo;
         }
         return {nuevo.getX()/nuevo.getZ(),-nuevo.getY()/nuevo.getZ(),prevZ};
+    }
+    return {prevX,-prevY,prevZ};
+}
+
+Vec3_t Model::projectTo3DSimplified(const Vec3_t &p, int type) {
+    double prevX = p.getX();
+    double prevY = p.getY();
+    double prevZ = p.getZ();
+    if(type == 0){
+        return {prevX,-prevY,prevZ};
+    }else if(type==1){
+        return {prevX,-prevY,prevZ};
+    }else if(type==2) {
+        //vec3_t nuevo =
+        if(prevZ == 0) {
+            return {prevX,-prevY,prevZ};
+        }
+        return {prevX/prevZ,-prevY/prevZ,prevZ};
     }
     return {prevX,-prevY,prevZ};
 }
@@ -768,8 +814,10 @@ bool Model::isVisible(const Face &face) {
 bool Model::isVisibleVec(const vector<Vec3_t> &vertexes) {
     double component = 0;
 
-    const Vec3_t A = vertexes[2] - vertexes[0];
-    const Vec3_t B = vertexes[1] - vertexes[0];
+    Vec3_t A = vertexes[2] - vertexes[0];
+    Vec3_t B = vertexes[1] - vertexes[0];
+    //A.normalize();
+    //B.normalize();
     const Vec3_t cameraRay = camera.getPosition() - vertexes[0];
 
     const Vec3_t normal = A.cross(B);
@@ -778,3 +826,8 @@ bool Model::isVisibleVec(const vector<Vec3_t> &vertexes) {
     return component>-2.5e-2;
 }
 
+void Model::unmarkPoints() {
+    for(auto p: points){
+        p->setUpdated(false);
+    }
+}

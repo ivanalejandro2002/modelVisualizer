@@ -25,3 +25,8 @@ Mat4_t Camera::getDirectionMatrix() {
 Mat4_t Camera::getAntiDirectionalMatrix() {
     return this->antiDirectionalMatrix;
 }
+
+void Camera::rotateCamera(double x, double y, double z) {
+    directionMatrix = directionMatrix * Mat4_t::make_rotate(x,y,z);
+    antiDirectionalMatrix = antiDirectionalMatrix * Mat4_t::make_rotate(-x,-y,-z);
+}
