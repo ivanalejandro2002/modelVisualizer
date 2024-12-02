@@ -49,6 +49,14 @@ void Face::setId(int _id) {
     id = _id;
 }
 
+void Face::setColor(const int _color) {
+    color = _color;
+}
+
+int Face::getColor() const {
+    return color;
+}
+
 void Face::getTreeHierarchy(ofstream &fileOut) const {
     fileOut << "\t\t\tId: "<<getId() << " ";
     fileOut << "\tVertices:\n";

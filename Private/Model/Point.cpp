@@ -71,11 +71,11 @@ Vec3_t Point::toVec3_t() const {
     return {getX() ,getY() ,getZ()};
 }
 
-bool Point::getUpdated(){
+bool Point::getUpdated() const{
     return updated;
 }
 
-void Point::setUpdated(bool _v) {
+void Point::setUpdated(const bool _v) {
     updated = _v;
 }
 

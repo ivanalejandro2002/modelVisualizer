@@ -41,7 +41,7 @@ class Point:public Vec3_t{
 
     void getPositions();
 
-    bool getUpdated();
+    bool getUpdated() const;
     void setUpdated(bool);
 
     Vec3_t getNewCoordinates();

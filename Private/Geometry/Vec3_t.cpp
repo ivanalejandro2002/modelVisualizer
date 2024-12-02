@@ -38,6 +38,11 @@ Vec3_t Vec3_t::operator /(const double factor) const{
     return {x / factor, y / factor, z / factor};
 }
 
+bool Vec3_t::operator<(const Vec3_t &) const {
+    return false;
+}
+
+
 double Vec3_t::length() const{
     return sqrt( x * x + y * y + z * z );
 }
