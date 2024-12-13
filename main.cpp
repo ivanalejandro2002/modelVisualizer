@@ -84,6 +84,7 @@ int main(int argv, char ** args) {
     bool drawVertex = true;
     bool drawEdges = false;
     bool drawFaces = false;
+    bool shaders = false;
     fout<<modelo.sizeOfFacesBuffer<<"\n";
     for(auto face: modelo.faces){
         //int rojo = rand()%200+30;
@@ -122,7 +123,7 @@ int main(int argv, char ** args) {
             modelo.getCamera().rotateCamera(0.1,0,0);
         }
         if(lectura=='s'){
-            modelo.getCamera().rotateCamera(-0.1,0,0);
+            shaders = !shaders;
         }
 
         //modelo.currentObject->translate(0,0,12);
@@ -152,7 +153,7 @@ int main(int argv, char ** args) {
         drawer->changeBrushColor({230,199,103,255});
 
         if(drawFaces)
-            modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov());
+            modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),shaders);
         //modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
 
         drawer->changeBrushColor({76,75,22,255});

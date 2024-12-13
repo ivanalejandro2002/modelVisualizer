@@ -526,7 +526,7 @@ void Model::renderFilledFaces(const int style, Drawer *drawer, const int fov, co
 
 }
 
-void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov) {
+void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov,bool shaders) {
     vector< pair<double,pair< vector<Vec2_t> , pair<int,vector<Vec3_t> > > > > rangedFaces;
     int index = 0;
     double EPS  = 0;
@@ -602,6 +602,7 @@ void Model::renderAllFilledFaces(const int style, Drawer *drawer, const int fov)
     for(int i = static_cast<int>(rangedFaces.size())-1;i >= 0; --i){
         double lightFactor = flatShadingFactor({0,0,-1},{rangedFaces[i].second.second.second});
         //lightFactor = 1;
+        if(!shaders)lightFactor = 1;
         const Uint8 red = (rangedFaces[i].second.second.first / 1000000)*lightFactor;
         const Uint8 green = ((rangedFaces[i].second.second.first / 1000) % 1000)*lightFactor;
         const Uint8 blue = (rangedFaces[i].second.second.first % 1000)*lightFactor;

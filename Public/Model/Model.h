@@ -118,7 +118,7 @@ class Model{
         void renderPoints(int, const Drawer *,int);
         void renderFilledFaces(int, Drawer *, int) const;
         void renderFilledFaces(int, Drawer *, int, const vector<int> &);
-        void renderAllFilledFaces(int, Drawer *, int);
+        void renderAllFilledFaces(int, Drawer *, int,bool);
         void renderFaces(int, const Drawer *,int);
 
         void renderCamera(int,const Drawer *,int);
