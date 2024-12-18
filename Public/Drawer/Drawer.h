@@ -3,7 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <SDL.h>
-#include "..\Geometry/Vec2_t.h"
+#include "../Geometry/Vec2_t.h"
+#include "../Geometry/Vec3_t.h"
 using namespace std;
 class Drawer{
 private:
@@ -38,6 +39,11 @@ public:
     void drawPoint(int x, int y) const;
 
     void drawHorizontalLine(int,int,int);
+    void drawHorizontalLineInterpolation(int,double,double,const Vec3_t &, const Vec3_t &, const Vec3_t &);
+    void drawFilledTriangleInterpolation(vector<pair<Vec2_t,Vec3_t> >, const Vec3_t &);
+    void drawFlatTopInterpolation(const vector<pair<Vec2_t,Vec3_t> >&, const Vec3_t &);
+    void drawFLatBottomInterpolation(const vector<pair<Vec2_t,Vec3_t> > &,const Vec3_t &);
+
     void drawFilledTriangle(vector<Vec2_t> );
     void drawFlatTop(const vector<Vec2_t>& );
     void drawFLatBottom(const vector<Vec2_t> &);

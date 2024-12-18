@@ -920,3 +920,164 @@ double Model::flatShadingFactor(const Vec3_t &light, const vector<Vec3_t> &figur
     w = min(w,static_cast<double>(1));
     return w;
 }
+
+Vec3_t Model::normalSum(const Point *p, const Face *original) {
+    Vec3_t normal = Vec3_t(0,0,0);
+    for(Face *f: p->faces) {
+        if(f == original) continue;
+
+        Vec3_t A = f->getVertices()[1]->toVec3_t() - f->getVertices()[0]->toVec3_t();
+        Vec3_t B = f->getVertices()[2]->toVec3_t() - f->getVertices()[0]->toVec3_t();
+
+        Vec3_t C = A.cross(B);
+
+        normal = normal + C;
+    }
+    normal.normalize();
+    return normal;
+}
+
+
+void Model::renderAllFilledFacesGouraud(const int style, Drawer *drawer, const int fov,bool shaders,double ka, double kd,const Vec3_t& la, const Vec3_t& ld, int lightFactor, const Vec3_t & lightOrigin) {
+    vector< pair<double,pair< vector<Vec2_t> , pair<int,vector<Vec3_t> > > > > rangedFaces;
+    vector<pair<double, Face * > >referencedFaces;
+    int index = 0;
+    double EPS  = 0;
+    if(style == 2)EPS = 1;
+    for(const auto *group: groups) {
+        for(const auto *object:group->objects) {
+            Mat4_t transition = object->getMatrix();
+
+            if(style==1){
+                transition = Mat4_t::isometric()*transition;
+            }else if(style==2) {
+                //vec3_t nuevo =
+                transition = camera.getAntiDirectionalMatrix() * transition;
+            }
+
+            for(const auto face: object->faces) {
+                vector<Point *> points = face->getVertices();
+                vector<Vec2_t> locations;
+                vector<Vec3_t> locations3D;
+                double realZ = 0;
+                double realY = 0;
+                double realX = 0;
+                bool atLeastOne = false;
+                bool allAlong = true;
+                Vec3_t p = {0,0,0};
+                Vec3_t locationX = {0,0,0};
+                Vec2_t location = {0,0};
+                for(auto *point:points) {
+                    if(!point->getUpdated()) {
+
+                        //point->setUpdated(true);
+                        p = (transition * (point->toVec4())).toVec3();
+                        locationX = projectTo3DSimplified(p,style);
+
+                        point->setNewCoordinates(locationX);
+
+                        location = {locationX.getX(),locationX.getY()};
+                        realZ += locationX.getZ();
+                        realY += locationX.getY();
+                        realX += locationX.getX();
+                        location = location*fov;
+                        location = location + Vec2_t(drawer->getWidth()/static_cast<double>(2),drawer->getHeight()/static_cast<double>(2));
+
+                        point->setScreenCoords(location);
+                    }else {
+                        locationX = point -> getNewCoordinates();
+                        realZ += locationX.getZ();
+                        realY += locationX.getY();
+                        realX += locationX.getX();
+                        location = point -> getScreenCoords();
+                    }
+
+                    locations.push_back(location);
+                    locations3D.push_back(locationX);
+
+                    if(locationX.getZ()>EPS)atLeastOne = true;
+                    if(locationX.getZ()<=EPS)allAlong = false;
+                }
+                if(style==2 && !allAlong)continue;
+                if(!atLeastOne)continue;
+
+                if(!isVisibleVec(locations3D))continue;
+
+                double distance = (Vec3_t(realX , realY , realZ) / static_cast<double>(points.size()) - camera.getPosition()).length();
+                rangedFaces.push_back({distance,{locations,{face->getColor(),locations3D}}});
+                referencedFaces.emplace_back(distance,face);
+                ++index;
+            }
+        }
+    }
+
+    ranges::sort(rangedFaces);
+    ranges::sort(referencedFaces);
+    for(int i = static_cast<int>(rangedFaces.size())-1;i >= 0; --i) {
+
+        /*for(const Vec2_t& point: rangedFaces[i].second.first) {
+            if(point.getX() < 0 || point.getY() < 0 || point.getX() > drawer->getWidth() || point.getY() > drawer->getHeight())allAlong = false;
+        }*/
+
+        vector<Vec3_t> normals;
+        for(int j=0;j<3;j++) {
+            normals.emplace_back(0,0,0);
+        }
+
+        vector<Vec3_t> shading;
+        for(int j=0;j<3;j++) {
+            shading.emplace_back(la*ka);
+        }
+        vector<pair<Vec2_t,Vec3_t> > projectionData;
+        //-------Defused lightning------//
+        normals[0] = normalSum(referencedFaces[i].second->getVertices()[0],referencedFaces[i].second);
+        normals[1] = normalSum(referencedFaces[i].second->getVertices()[1],referencedFaces[i].second);
+        normals[2] = normalSum(referencedFaces[i].second->getVertices()[2],referencedFaces[i].second);
+        normals[0].normalize();
+        normals[1].normalize();
+        normals[2].normalize();
+
+        Vec3_t L = lightOrigin - rangedFaces[i].second.second.second[0];
+        double d = L.length();
+        L.normalize();
+        shading[0] = shading[0] + ld*max(L.dot(normals[0])*kd,static_cast<double>(0));
+
+
+        L = lightOrigin - rangedFaces[i].second.second.second[1];
+        d = L.length();
+        L.normalize();
+        shading[1] = shading[1] + ld*max(L.dot(normals[1])*kd,static_cast<double>(0));
+
+        L = lightOrigin - rangedFaces[i].second.second.second[2];
+        d = L.length();
+        L.normalize();
+        shading[2] = shading[2] + ld*max(L.dot(normals[2])*kd,static_cast<double>(0));
+
+        //---------Specular Lightning-----------
+        L = lightOrigin - rangedFaces[i].second.second.second[0];
+        d = L.length();
+        L.normalize();
+        Vec3_t R = normals[0] *(2 * (normals[0].dot(L))) - L;
+        shading[0] = shading[0] + ld*max(pow(R.dot(normals[0]),lightFactor)*kd,static_cast<double>(0));
+
+        L = lightOrigin - rangedFaces[i].second.second.second[1];
+        d = L.length();
+        L.normalize();
+        R = normals[1] *(2 * (normals[1].dot(L))) - L;
+        shading[1] = shading[1] + ld*max(pow(R.dot(normals[1]),lightFactor)*kd,static_cast<double>(0));
+
+        L = lightOrigin - rangedFaces[i].second.second.second[2];
+        d = L.length();
+        L.normalize();
+        R = normals[2] *(2 * (normals[2].dot(L))) - L;
+        shading[2] = shading[2] + ld*max(pow(R.dot(normals[2]),lightFactor)*kd,static_cast<double>(0));
+
+        projectionData.clear();
+        for(int idx=0;idx<3;++idx) {
+            projectionData.emplace_back(rangedFaces[i].second.first[idx],shading[idx]);
+        }
+        drawer->drawFilledTriangleInterpolation(projectionData,{static_cast<double>(rangedFaces[i].second.second.first / static_cast<double>(1000000)),static_cast<double>((rangedFaces[i].second.second.first / 1000) % 1000),static_cast<double>(rangedFaces[i].second.second.first % 1000)});
+        //drawer->drawFilledTriangleInterpolation(projectionData,{255,255,255});
+        //drawer->drawFilledTriangle(rangedFaces[i].second.first);
+    }
+}

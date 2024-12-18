@@ -140,4 +140,8 @@ class Model{
         void unmarkPoints();
 
         static double flatShadingFactor(const Vec3_t &, const vector<Vec3_t> &);
+
+        Vec3_t normalSum (const Point *,const Face *);
+
+        void renderAllFilledFacesGouraud(int, Drawer *, int,bool,double,double,const Vec3_t&,const Vec3_t&,int, const Vec3_t &);
 };
