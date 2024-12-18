@@ -151,9 +151,9 @@ int main(int argv, char ** args) {
             modelo.renderPoints(controller->getTypeOfView(),drawer,controller->getFov());
 
         drawer->changeBrushColor({230,199,103,255});
-
+        //const int style, Drawer *drawer, const int fov,bool shaders,double ka, double kd,const Vec3_t& la, const Vec3_t& ld, int lightFactor, const Vec3_t & lightOrigin
         if(drawFaces)
-            modelo.renderAllFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),shaders);
+            modelo.renderAllFilledFacesGouraud(controller->getTypeOfView(),drawer,controller->getFov(),shaders,.10,.50,{1,1,1},{1,1,1},1,{100,0,0});
         //modelo.renderFilledFaces(controller->getTypeOfView(),drawer,controller->getFov(),colorForFaces);
 
         drawer->changeBrushColor({76,75,22,255});
@@ -175,6 +175,14 @@ int main(int argv, char ** args) {
         //drawer->changeBrushColor({0,255,0,10});
         //drawer->drawScanLineFill({{10,10},{20,10},{60,60},{10,20}});
         //drawer->drawScanLineFill({{-1000,-1000},{1000,-1000},{1000,1000},{-1000,1000}});
+
+        /*for(int i=10;i<100;i++) {
+            drawer->drawHorizontalLineInterpolation(i,50,100,{1,0,0},{0,1,0},{128,128,128});
+        }*/
+
+        //drawer->drawFlatTopInterpolation({{{10,50},{1,0,0}},{{40,50},{0,1,0}},{{30,100},{0,0,1}}},{128,128,128});
+        //drawer->drawFLatBottomInterpolation({{{200,10},{1,0,0}},{{150,50},{0,1,0}},{{250,50},{0,0,1}}},{128,128,128});
+        drawer->drawFilledTriangleInterpolation({{{200,10},{1,0,0}},{{150,80},{0,1,0}},{{250,50},{0,0,1}}},{128,128,128});
         drawer->updateScreen();
         drawer->fillColor({0,0,0,255});
 

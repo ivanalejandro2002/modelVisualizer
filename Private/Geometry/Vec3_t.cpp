@@ -14,6 +14,8 @@ void Vec3_t::setValues(const double _x, const double _y, const double _z) {
     y = _y;
     z = _z;
 }
+Vec3_t::Vec3_t() = default;
+
 
 Vec3_t& Vec3_t::operator=(const Vec3_t& rhs) {
     x = rhs.x;

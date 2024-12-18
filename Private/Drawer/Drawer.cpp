@@ -255,6 +255,120 @@ void Drawer::drawHorizontalLine(int y, int x1, int x2){
     }
 }
 
+void Drawer::drawHorizontalLineInterpolation(int y, double x1, double x2,const Vec3_t &left, const Vec3_t &right,const Vec3_t &color){
+    Vec3_t rleft = left,rright = right;
+    if(x1>x2) {
+        swap(x1,x2);
+        swap(rleft,rright);
+    }
+    Vec3_t actualLight(0,0,0);
+    int sleft = max((int)x1,0);
+    int sright = min((int)x2,width);
+    for(int i=sleft;i<=sright;i++){
+        actualLight = rleft+ (rright-rleft)*(static_cast<double>(i) - x1)/(x2 - x1);
+        const double r = color.getX()*actualLight.getX();
+        const double g = color.getY()*actualLight.getY();
+        const double b = color.getZ()*actualLight.getZ();
+        changeBrushColor({static_cast<Uint8>(r),static_cast<Uint8>(g),static_cast<Uint8>(b),255});
+        SDL_RenderDrawPoint(renderer,i,y);
+    }
+}
+
+void Drawer::drawFilledTriangleInterpolation(vector<pair<Vec2_t,Vec3_t> > pts,const Vec3_t &color) {
+    ranges::sort(pts);
+    if(pts[0].first.getY() == pts[2].first.getY()){
+        drawHorizontalLineInterpolation(pts[0].first.getY(),pts[0].first.getX(),pts[2].first.getX(),pts[0].second, pts[2].second,color);
+    }
+    double x,y;
+    y = pts[1].first.getY();
+    x = ((pts[2].first.getX()-pts[0].first.getX())*(pts[1].first.getY()-pts[0].first.getY()))/(pts[2].first.getY()-pts[0].first.getY())+pts[0].first.getX();
+
+    Vec2_t M(x,y);
+    Vec3_t MLight(0,0,0);
+    MLight = pts[0].second + (pts[2].second-pts[0].second)*((pts[1].first.getY()-pts[0].first.getY())/(pts[2].first.getY()-pts[0].first.getY()));
+
+
+    if(pts[1].first.getY()!=pts[2].first.getY() && pts[2].first.getY()!=y) {
+        drawFlatTopInterpolation({pts[1],{M,MLight},pts[2]},color);
+    }
+    if(pts[0].first.getY()!=pts[1].first.getY() && pts[0].first.getY()!=y){
+        drawFLatBottomInterpolation({pts[0],pts[1],{M,MLight}},color);
+    }
+}
+
+void Drawer::drawFlatTopInterpolation(const vector<pair<Vec2_t,Vec3_t> > &pts,const Vec3_t &color) {
+    Vec3_t leftLight, rightLight;
+    double deltaX,deltaY;
+    deltaX = pts[0].first.getX()-pts[2].first.getX();
+    deltaY = pts[2].first.getY()-pts[0].first.getY();
+    double m1 = deltaX/deltaY;
+    Vec3_t leftDelta = (pts[0].second - pts[2].second) / (deltaY);
+
+    deltaX = pts[1].first.getX()-pts[2].first.getX();
+    deltaY = pts[2].first.getY()-pts[0].first.getY();
+
+    double m2 = deltaX/deltaY;
+    const Vec3_t rightDelta = (pts[1].second - pts[2].second) / (deltaY);
+    double xStart, xEnd;
+    double origin;
+    origin = xStart = xEnd = pts[2].first.getX();
+
+    int startY = (int)pts[2].first.getY();
+    int endY = (int)pts[0].first.getY();
+    leftLight = pts[2].second;
+    rightLight = pts[2].second;
+    for(int i=startY;i>=endY;i--){
+        drawHorizontalLineInterpolation(i,static_cast<int>(xStart),static_cast<int>(xEnd),leftLight,rightLight,color);
+        xStart+=m1;
+        if(abs(pts[0].first.getX()-origin)<abs(xStart-origin)){
+            xStart = pts[0].first.getX();
+        }
+        xEnd+=m2;
+        if(abs(pts[1].first.getX()-origin)<abs(xEnd-origin)){
+            xEnd = pts[1].first.getX();
+        }
+        leftLight= leftLight+leftDelta;
+        rightLight= rightLight+rightDelta;
+    }
+}
+
+void Drawer::drawFLatBottomInterpolation(const vector<pair<Vec2_t,Vec3_t> > &pts,const Vec3_t &color) {
+    Vec3_t leftLight, rightLight;
+    double deltaX,deltaY;
+    deltaX = pts[0].first.getX()-pts[2].first.getX();
+    deltaY = pts[0].first.getY()-pts[2].first.getY();
+    if(deltaY==0)return;
+    double m1 = deltaX/deltaY;
+    Vec3_t leftDelta = (pts[2].second - pts[0].second) / (-deltaY);
+
+    deltaX = pts[1].first.getX()-pts[0].first.getX();
+    deltaY = pts[2].first.getY()-pts[0].first.getY();
+    if(deltaY==0)return;
+    Vec3_t rightDelta = (pts[1].second - pts[0].second) / (deltaY);
+
+    double m2 = deltaX/deltaY;
+    double xStart, xEnd,origin;
+    origin = xStart = xEnd = pts[0].first.getX();
+
+    int startY = (int)pts[0].first.getY();
+    int endY = (int)pts[2].first.getY();
+    leftLight = rightLight = pts[0].second;
+    for(int i=startY;i<=endY;i++){
+        drawHorizontalLineInterpolation(i,xStart,xEnd,leftLight,rightLight,color);
+        xStart+=m1;
+        if(abs(pts[2].first.getX()-origin)<abs(xStart-origin)){
+            xStart = pts[2].first.getX();
+        }
+        xEnd+=m2;
+        if(abs(pts[1].first.getX()-origin)<abs(xEnd-origin)){
+            xEnd = pts[1].first.getX();
+        }
+        leftLight= leftLight+leftDelta;
+        rightLight= rightLight+rightDelta;
+    }
+}
+
+
 void Drawer::drawFilledTriangle(vector<Vec2_t> pts) {
     sort(pts.begin(),pts.end());
     if(pts[0].getY() == pts[2].getY()){

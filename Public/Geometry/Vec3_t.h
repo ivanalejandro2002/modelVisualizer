@@ -5,12 +5,13 @@
 class Vec4_t;
 class Vec3_t{
 private:
-    double x;
-    double y;
-    double z;
+    double x{};
+    double y{};
+    double z{};
 public:
     const double eps = 1e-9;
     Vec3_t(double, double, double);
+    Vec3_t();
     ~Vec3_t();
 
     void setValues(double, double, double);
